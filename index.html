@@ -2,285 +2,300 @@
 <html lang="de">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-<title>Paranometer — Tilt to Tone</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Paranometer — Neigungs-Sound (WebAudio)</title>
 <style>
-  :root { --bg:#0f1720; --card:#0b1220; --accent:#8bd5ff; --muted:#94a3b8; }
-  html,body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto; background:linear-gradient(180deg,#071021,#081426); color:#dbe7f3; }
-  .wrap { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
-  .card { width:100%; max-width:420px; background:rgba(255,255,255,0.03); border-radius:14px; padding:22px; box-shadow:0 6px 30px rgba(2,6,23,0.6); text-align:center; }
-  h1 { margin:0 0 10px 0; font-size:20px; letter-spacing:0.2px; }
-  p { margin:6px 0 16px 0; color:var(--muted); font-size:14px; }
-  .display { font-size:18px; background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; margin-bottom:16px; }
-  #holdBtn {
-    -webkit-tap-highlight-color: transparent;
-    display:inline-block; user-select:none;
-    background:linear-gradient(180deg,var(--accent),#6cc8ff);
-    color:#012; font-weight:700; padding:18px 28px; border-radius:999px; font-size:16px; border:none;
-    box-shadow:0 6px 18px rgba(0,0,0,0.45);
-    touch-action:manipulation;
-  }
-  #holdBtn.inactive { background:rgba(255,255,255,0.06); color:var(--muted); box-shadow:none; }
-  small.note { display:block; margin-top:10px; color:var(--muted); }
-  .bars { display:flex; gap:6px; justify-content:center; margin-top:12px; height:18px; }
-  .bar { width:8px; background:linear-gradient(180deg,#8bd5ff,#3ab0ff); border-radius:4px; opacity:0.9; transform-origin:bottom; }
+  :root { --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --text:#e6eef8; }
+  body { margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#071229 0%, #081827 100%); color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .card { width:min(720px,94vw); background:rgba(255,255,255,0.03); border-radius:14px; padding:22px; box-shadow:0 8px 30px rgba(2,6,23,0.6); }
+  h1 { margin:0 0 6px 0; font-size:20px; letter-spacing:0.2px; }
+  p.lead { margin:0 0 18px 0; opacity:0.9; }
+  #controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  button { background:var(--accent); color:#012027; border:none; padding:12px 16px; border-radius:10px; font-weight:600; cursor:pointer; box-shadow:0 6px 18px rgba(6,182,212,0.14); }
+  button.secondary { background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.06); box-shadow:none; }
+  .status { margin-top:16px; font-size:14px; color:#cfeff6; opacity:0.95; }
+  .readout { display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
+  .tile { background:rgba(255,255,255,0.02); padding:12px 14px; border-radius:10px; min-width:120px; text-align:center; }
+  .big { font-size:18px; font-weight:700; }
+  .small { font-size:12px; opacity:0.85; }
+  footer { margin-top:16px; font-size:12px; opacity:0.7; }
+  .hint { margin-top:10px; font-size:13px; color:#e6eef8; opacity:0.85; }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Paranometer — Halte zum Scannen</h1>
-      <p>Halte den Knopf gedrückt (Touch/Mouse). Neigung → Tonhöhe.</p>
+  <div class="card" role="main">
+    <h1>Paranometer — Live-Neigungs-Sound</h1>
+    <p class="lead">Drücke START, um Sensoren + Audio freizugeben. Kippe dein Handy — der Ton ändert sich live. (50 Hz → 4000 Hz)</p>
 
-      <div class="display" id="readout">
-        Bereit. Taste drücken, um Sensorzugriff & Audio zu erlauben.
-        <div style="margin-top:8px;font-size:13px;color:var(--muted)">Sensor: <span id="sensorStatus">nicht aktiviert</span></div>
+    <div id="controls">
+      <button id="startBtn">START (Sensoren & Audio erlauben)</button>
+      <button id="stopBtn" class="secondary" style="display:none">STOP</button>
+      <div id="permHint" class="small" style="margin-left:8px">Safari/iOS: Tippe den START-Button und erlaube die Zugriffe.</div>
+    </div>
+
+    <div class="status" id="status">Status: Bereit</div>
+
+    <div class="readout" aria-live="polite">
+      <div class="tile">
+        <div class="small">beta (front/back)</div>
+        <div id="beta" class="big">—</div>
       </div>
-
-      <button id="holdBtn" class="inactive">Drücke & halte</button>
-      <small class="note">iOS: beim ersten Mal wird um Erlaubnis gefragt.</small>
-
-      <div class="bars" aria-hidden="true" id="bars">
-        <div class="bar" style="height:6px"></div>
-        <div class="bar" style="height:10px"></div>
-        <div class="bar" style="height:14px"></div>
-        <div class="bar" style="height:10px"></div>
-        <div class="bar" style="height:6px"></div>
+      <div class="tile">
+        <div class="small">gamma (left/right)</div>
+        <div id="gamma" class="big">—</div>
+      </div>
+      <div class="tile">
+        <div class="small">Tilt (kombiniert)</div>
+        <div id="tilt" class="big">—</div>
+      </div>
+      <div class="tile">
+        <div class="small">Frequenz</div>
+        <div id="freq" class="big">— Hz</div>
       </div>
     </div>
+
+    <div class="hint">
+      Tipp: Nach dem Drücken von START laufender Ton → kipp das Gerät. Falls nichts passiert: Safari Einstellungen prüfen (Website Zugriff auf Bewegung/Ort).
+    </div>
+
+    <footer>© Paranometer — WebAudio, DeviceOrientation. (50–4000 Hz, A2 Variante)</footer>
   </div>
 
 <script>
 (() => {
-  const holdBtn = document.getElementById('holdBtn');
-  const readout = document.getElementById('readout');
-  const sensorStatus = document.getElementById('sensorStatus');
-  const bars = Array.from(document.querySelectorAll('.bar'));
+  // Konfiguration
+  const MIN_FREQ = 50;    // waagrecht -> Bass
+  const MAX_FREQ = 4000;  // senkrecht -> schrill
+  const SMOOTH_TIME = 0.05; // Sekunden für frequency smoothing
 
+  // UI
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const statusEl = document.getElementById('status');
+  const betaEl   = document.getElementById('beta');
+  const gammaEl  = document.getElementById('gamma');
+  const tiltEl   = document.getElementById('tilt');
+  const freqEl   = document.getElementById('freq');
+
+  // Audio nodes
   let audioCtx = null;
   let osc = null;
-  let gain = null;
+  let masterGain = null;
+  let filter = null;
   let running = false;
-  let lastOrient = { beta: 0, gamma: 0 }; // beta: front-back, gamma: left-right
-  let rafId = null;
 
-  // smoothing
-  let smoothBeta = 0;
-  let smoothGamma = 0;
-  const alpha = 0.15; // smoothing factor: 0..1
+  // Last known orientation
+  let lastBeta = 0, lastGamma = 0;
 
-  // Map tilt to frequency
-  function tiltToFreq(beta, gamma) {
-    // beta approx -180..180 (front/back), gamma approx -90..90 (left/right)
-    // use combined tilt magnitude but keep sign of forward/back for interesting mapping
-    const mag = Math.sqrt(beta*beta + gamma*gamma);
-    // clamp mag
-    const m = Math.min(mag, 90);
-    // map 0..90 -> 150..1500 Hz (adjust range to taste)
-    const minF = 160;
-    const maxF = 1500;
-    const freq = minF + (m / 90) * (maxF - minF);
-    return Math.max(40, freq);
+  // Map tilt (0..90) -> frequency
+  function tiltToFreq(tilt) {
+    // tilt expected 0..90
+    const t = Math.min(Math.max(tilt, 0), 90) / 90;
+    return MIN_FREQ + (MAX_FREQ - MIN_FREQ) * t;
   }
 
-  // Update oscillator frequency and UI
-  function doUpdate() {
-    // smoothing
-    smoothBeta += (lastOrient.beta - smoothBeta) * alpha;
-    smoothGamma += (lastOrient.gamma - smoothGamma) * alpha;
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-    const freq = tiltToFreq(smoothBeta, smoothGamma);
-    if (osc) {
-      // smooth freq change
-      osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.03);
-    }
-
-    // UI update
-    const tiltVal = Math.sqrt(smoothBeta*smoothBeta + smoothGamma*smoothGamma);
-    readout.innerHTML = `Neigung: β=${smoothBeta.toFixed(1)}°, γ=${smoothGamma.toFixed(1)}°<br>Tonhöhe ≈ ${Math.round(freq)} Hz`;
-    // animate bars based on frequency/magnitude
-    const norm = Math.min(1, tiltVal / 90);
-    bars.forEach((b, i) => {
-      const scale = 0.3 + norm * (0.4 + i * 0.15);
-      b.style.transform = `scaleY(${scale})`;
-      b.style.opacity = `${0.5 + norm*0.5}`;
-    });
-
-    rafId = requestAnimationFrame(doUpdate);
-  }
-
-  // Sensor event handler
-  function onDeviceOrientation(e) {
-    // use beta (front/back tilt) and gamma (left/right tilt)
-    // Some browsers return nulls
-    if (e && (e.beta !== null || e.gamma !== null)) {
-      lastOrient.beta = e.beta || 0;
-      lastOrient.gamma = e.gamma || 0;
-    }
-  }
-
-  // Request permission for iOS 13+ if required
-  async function ensureMotionPermission() {
-    // Some iOS versions require DeviceMotionEvent.requestPermission()
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const res = await DeviceMotionEvent.requestPermission();
-        if (res !== 'granted') throw new Error('Motion permission denied');
-        sensorStatus.textContent = 'berechtigt (DeviceMotion)';
-        return true;
-      } catch (err) {
-        sensorStatus.textContent = 'erlaubnis verweigert';
-        throw err;
-      }
-    }
-    // Some browsers use DeviceOrientationEvent.requestPermission (older variants)
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-      try {
-        const res = await DeviceOrientationEvent.requestPermission();
-        if (res !== 'granted') throw new Error('Motion permission denied');
-        sensorStatus.textContent = 'berechtigt (DeviceOrientation)';
-        return true;
-      } catch (err) {
-        sensorStatus.textContent = 'erlaubnis verweigert';
-        throw err;
-      }
-    }
-    // If no permission API, assume available
-    sensorStatus.textContent = 'aktiv (keine expl. Permission erforderlich)';
-    return true;
-  }
-
-  // Start audio & sensors
-  async function startScanning() {
-    if (running) return;
+  // Smoothly update oscillator frequency
+  function setFrequencySmooth(value) {
+    if (!audioCtx || !osc) return;
+    const now = audioCtx.currentTime;
+    // Using exponential ramp avoids clicks; but frequency must be > 0
+    // We'll use linearRampToValueAtTime for compatibility, preceded by cancelScheduledValues
     try {
-      await ensureMotionPermission();
-    } catch (err) {
-      readout.textContent = 'Motion-Zugriff nicht erlaubt. App beendet.';
+      osc.frequency.cancelScheduledValues(now);
+      osc.frequency.setValueAtTime(osc.frequency.value || value, now);
+      osc.frequency.linearRampToValueAtTime(value, now + SMOOTH_TIME);
+    } catch (e) {
+      // fallback
+      try { osc.frequency.value = value; } catch(e2){}
+    }
+  }
+
+  // Create and start the audio graph
+  function startAudio() {
+    if (running) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // create nodes
+    osc = audioCtx.createOscillator();
+    masterGain = audioCtx.createGain();
+    filter = audioCtx.createBiquadFilter();
+
+    // Oscillator
+    osc.type = 'sine';
+    osc.frequency.value = MIN_FREQ;
+
+    // Filter to make low end 'darker' (we'll modulate filter.frequency along with pitch)
+    filter.type = 'lowpass';
+    filter.frequency.value = 2000; // initial
+    filter.Q.value = 0.7;
+
+    // Master gain: keep volume reasonable
+    masterGain.gain.value = 0.12;
+
+    // connect: osc -> filter -> gain -> dest
+    osc.connect(filter);
+    filter.connect(masterGain);
+    masterGain.connect(audioCtx.destination);
+
+    // start oscillator
+    try {
+      osc.start();
+    } catch(e) {
+      // ignore if already started
+    }
+
+    running = true;
+    statusEl.textContent = 'Status: Audio läuft — Gerät kippen, um Ton zu ändern.';
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+  }
+
+  function stopAudio() {
+    if (!running) return;
+    try {
+      osc.stop();
+    } catch(e){}
+    try { audioCtx.close(); } catch(e){}
+    audioCtx = null; osc = null; masterGain = null; filter = null; running = false;
+    statusEl.textContent = 'Status: Gestoppt';
+    startBtn.style.display = 'inline-block';
+    stopBtn.style.display = 'none';
+    betaEl.textContent = '—'; gammaEl.textContent = '—'; tiltEl.textContent = '—'; freqEl.textContent = '— Hz';
+  }
+
+  // Called for each deviceorientation event
+  function handleOrientation(ev) {
+    if (!ev) return;
+    // Beta: Rotation around X axis — front/back tilt (deg)
+    // Gamma: Rotation around Y axis — left/right tilt (deg)
+    const beta = typeof ev.beta === 'number' ? ev.beta : 0;
+    const gamma = typeof ev.gamma === 'number' ? ev.gamma : 0;
+
+    lastBeta = beta; lastGamma = gamma;
+
+    // compute a combined tilt magnitude:
+    // Use absolute beta & gamma, combine as vector magnitude,
+    // then clamp to max 90 degrees to map 0..90 -> freq range.
+    const absBeta = Math.abs(beta);
+    const absGamma = Math.abs(gamma);
+    let tilt = Math.sqrt(absBeta*absBeta + absGamma*absGamma) / Math.SQRT2; // scale so typical max ~90
+    // ensure clamp 0..90
+    tilt = clamp(tilt, 0, 90);
+
+    // Map tilt to frequency
+    const freq = tiltToFreq(tilt);
+
+    // Update UI
+    betaEl.textContent = beta.toFixed(1) + '°';
+    gammaEl.textContent = gamma.toFixed(1) + '°';
+    tiltEl.textContent = tilt.toFixed(1) + '°';
+    freqEl.textContent = Math.round(freq) + ' Hz';
+
+    // Update audio if running
+    if (running && audioCtx && osc) {
+      // Smooth frequency change
+      setFrequencySmooth(freq);
+
+      // Adjust lowpass filter to make low end darker at low freq and more open at high freq
+      // We'll map filter cutoff: when freq low -> cutoff relatively low; when freq high -> cutoff high
+      const filterCut = clamp(Math.max(200, freq * 2), 200, 20000);
+      try {
+        filter.frequency.cancelScheduledValues(audioCtx.currentTime);
+        filter.frequency.setValueAtTime(filter.frequency.value || filterCut, audioCtx.currentTime);
+        filter.frequency.linearRampToValueAtTime(filterCut, audioCtx.currentTime + SMOOTH_TIME * 1.2);
+      } catch(e){}
+    }
+  }
+
+  // Permission flow for iOS Safari and others
+  async function requestSensorPermissionIfNeeded() {
+    // iOS 13+ requires DeviceOrientationEvent.requestPermission()
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const result = await DeviceOrientationEvent.requestPermission();
+        return result === 'granted';
+      } catch (err) {
+        console.warn('DeviceOrientation permission request failed:', err);
+        return false;
+      }
+    } else {
+      // Non-iOS or older: no explicit permission call required
+      return true;
+    }
+  }
+
+  // Main start button handler
+  startBtn.addEventListener('click', async () => {
+    statusEl.textContent = 'Status: Fordere Sensor-Zugriff an...';
+
+    const sensorOk = await requestSensorPermissionIfNeeded();
+    if (!sensorOk) {
+      statusEl.textContent = 'Status: Sensor-Zugriff verweigert. Bitte in Safari die Berechtigung erlauben.';
       return;
     }
 
-    // Create AudioContext on first user gesture if not existing
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    // create oscillator + gain
-    osc = audioCtx.createOscillator();
-    osc.type = 'sine'; // change to 'triangle' or 'sawtooth' for other timbres
-    gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, audioCtx.currentTime);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    // gentle fade-in
-    const now = audioCtx.currentTime;
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.001);
-    gain.gain.linearRampToValueAtTime(0.24, now + 0.12);
-
-    // start oscillator
-    osc.start();
-
-    // add sensor listener
-    window.addEventListener('deviceorientation', onDeviceOrientation, true);
-
-    // start update loop
-    running = true;
-    holdBtn.classList.remove('inactive');
-    doUpdate();
-  }
-
-  // Stop audio & sensors
-  function stopScanning() {
-    if (!running) return;
-    // fade out and stop
-    if (gain) {
-      const now = audioCtx.currentTime;
-      gain.gain.cancelScheduledValues(now);
-      gain.gain.setValueAtTime(gain.gain.value, now);
-      gain.gain.linearRampToValueAtTime(0.0001, now + 0.12);
-    }
-    if (osc) {
-      try {
-        osc.stop(audioCtx.currentTime + 0.13);
-      } catch(e){/*already stopped*/}
-    }
-
-    // remove sensor listener
-    window.removeEventListener('deviceorientation', onDeviceOrientation, true);
-
-    // cancel update
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = null;
-    running = false;
-    holdBtn.classList.add('inactive');
-
-    // slight UI reset
-    readout.innerHTML = 'Gestoppt. Taste drücken, um erneut zu scannen.';
-    bars.forEach(b => { b.style.transform='scaleY(1)'; b.style.opacity='0.6'; });
-  }
-
-  // Pointer/Touch handling for press-and-hold (works for mouse & touch)
-  function attachPressHold(el) {
-    let pointerDown = false;
-
-    const onDown = async (ev) => {
-      ev.preventDefault();
-      pointerDown = true;
-      // Ensure audio context is resumed (some browsers require resume)
-      if (audioCtx && audioCtx.state === 'suspended') {
-        try { await audioCtx.resume(); } catch(_) {}
+    // Setup audio and ensure it is resumed/unlocked by user gesture
+    try {
+      // Create audio context if not exists and resume it (iOS requires user gesture)
+      if (!audioCtx) {
+        startAudio();
+      } else {
+        // resume if suspended
+        await audioCtx.resume();
       }
-      await startScanning();
-    };
-    const onUp = (ev) => {
-      if (!pointerDown) return;
-      pointerDown = false;
-      stopScanning();
-    };
-
-    el.addEventListener('pointerdown', onDown);
-    window.addEventListener('pointerup', onUp);
-    el.addEventListener('touchstart', onDown, {passive:false});
-    window.addEventListener('touchend', onUp);
-    // in case touchcancel or pointercancel
-    window.addEventListener('pointercancel', onUp);
-    window.addEventListener('touchcancel', onUp);
-  }
-
-  // Init
-  holdBtn.classList.add('inactive');
-  sensorStatus.textContent = 'nicht aktiviert';
-  attachPressHold(holdBtn);
-
-  // Extra: quick detection if sensor events are present at all
-  function sensorProbe() {
-    let triggered = false;
-    function probe(e) { triggered = true; window.removeEventListener('deviceorientation', probe); }
-    window.addEventListener('deviceorientation', probe);
-    setTimeout(() => {
-      if (!triggered) {
-        sensorStatus.textContent = 'Sensor nicht verfügbar in diesem Browser';
-      }
-    }, 800);
-  }
-  sensorProbe();
-
-  // Prevent screen from sleeping while scanning (optional; requires Wake Lock API)
-  let wakeLock = null;
-  async function requestWakeLock() {
-    if ('wakeLock' in navigator && running) {
-      try {
-        wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) { /* ignore */ }
+    } catch (err) {
+      console.warn('AudioContext Fehler:', err);
+      statusEl.textContent = 'Status: Fehler beim Erstellen des AudioContext.';
+      return;
     }
-  }
-  // attach wake lock on start/stop
-  const origStart = startScanning;
-  startScanning = async () => { await origStart(); await requestWakeLock(); };
-  const origStop = stopScanning;
-  stopScanning = () => { if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; } origStop(); };
+
+    // Add deviceorientation listener
+    // Use passive:false? Not necessary; we just listen.
+    window.addEventListener('deviceorientation', handleOrientation, true);
+
+    // Also attempt devicemotion as fallback (rare)
+    // window.addEventListener('devicemotion', ...)
+
+    statusEl.textContent = 'Status: Sensoren aktiv. Kippe dein Gerät — der Ton passt sich an.';
+  });
+
+  // Stop button
+  stopBtn.addEventListener('click', () => {
+    window.removeEventListener('deviceorientation', handleOrientation, true);
+    stopAudio();
+  });
+
+  // When page becomes hidden, pause audio (good practice)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (audioCtx && audioCtx.state === 'running') {
+        audioCtx.suspend();
+        statusEl.textContent = 'Status: Seite verborgen — Audio pausiert.';
+      }
+    } else {
+      if (audioCtx && audioCtx.state === 'suspended' && running) {
+        audioCtx.resume();
+        statusEl.textContent = 'Status: Fortgesetzt — Sensoren aktiv.';
+      }
+    }
+  });
+
+  // Friendly fallback message when DeviceOrientation is not supported
+  setTimeout(() => {
+    if (typeof DeviceOrientationEvent === 'undefined' && typeof window.DeviceMotionEvent === 'undefined') {
+      statusEl.textContent = 'Status: DeviceOrientation/DeviceMotion wird von diesem Gerät/Browser nicht unterstützt.';
+    }
+  }, 800);
+
+  // Helpful UX: pressing anywhere also resumes audio on some devices
+  document.body.addEventListener('touchend', async () => {
+    if (audioCtx && audioCtx.state === 'suspended' && running) {
+      try { await audioCtx.resume(); } catch(e){}
+    }
+  }, {passive:true});
 
 })();
 </script>
