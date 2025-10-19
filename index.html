@@ -3,203 +3,383 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Paranometer — Neigungs-Sound (WebAudio)</title>
+<title>Paranometer — Energielevel Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --text:#e6eef8; }
-  body { margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#071229 0%, #081827 100%); color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .card { width:min(720px,94vw); background:rgba(255,255,255,0.03); border-radius:14px; padding:22px; box-shadow:0 8px 30px rgba(2,6,23,0.6); }
-  h1 { margin:0 0 6px 0; font-size:20px; letter-spacing:0.2px; }
-  p.lead { margin:0 0 18px 0; opacity:0.9; }
-  #controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  button { background:var(--accent); color:#012027; border:none; padding:12px 16px; border-radius:10px; font-weight:600; cursor:pointer; box-shadow:0 6px 18px rgba(6,182,212,0.14); }
-  button.secondary { background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.06); box-shadow:none; }
-  .status { margin-top:16px; font-size:14px; color:#cfeff6; opacity:0.95; }
-  .readout { display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
-  .tile { background:rgba(255,255,255,0.02); padding:12px 14px; border-radius:10px; min-width:120px; text-align:center; }
-  .big { font-size:18px; font-weight:700; }
-  .small { font-size:12px; opacity:0.85; }
-  footer { margin-top:16px; font-size:12px; opacity:0.7; }
-  .hint { margin-top:10px; font-size:13px; color:#e6eef8; opacity:0.85; }
+  :root{
+    --bg1:#02040a;
+    --bg2:#07121a;
+    --card:#061018;
+    --neon:#7ef9b6;
+    --neon-2:#7cf0ff;
+    --muted:rgba(190,255,220,0.12);
+    --glass: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%; margin:0; font-family:"Space Grotesk",system-ui,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 600px at 10% 10%, rgba(0,255,150,0.02), transparent 6%), linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 100%); color:var(--neon); -webkit-font-smoothing:antialiased;}
+  .wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:28px;}
+  .panel{width:min(980px,96vw); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:16px; padding:20px; box-shadow: 0 12px 40px rgba(1,6,10,0.6); border:1px solid rgba(124,240,255,0.03);}
+  .head{display:flex; align-items:center; gap:14px;}
+  .logo{width:58px; height:58px; background:linear-gradient(135deg, rgba(126,249,182,0.12), rgba(124,240,255,0.06)); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--neon-2); font-weight:700; font-size:22px; box-shadow: 0 6px 20px rgba(12,255,170,0.03) inset;}
+  h1{margin:0; font-size:20px; letter-spacing:0.6px; color:var(--neon-2);}
+  p.lead{margin:6px 0 0 0; color:rgba(200,255,220,0.9); font-size:13px; opacity:0.95;}
+  
+  .mainrow{display:flex; gap:18px; margin-top:18px; align-items:stretch; flex-wrap:wrap;}
+  .left{flex:1 1 380px; min-width:300px; background:var(--card); border-radius:12px; padding:16px; border:1px solid var(--muted);}
+  .right{width:320px; min-width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent); border-radius:12px; padding:14px; border:1px solid var(--muted);}
+  
+  /* Gauge */
+  .gauge-wrap{display:flex; align-items:center; justify-content:center; position:relative; padding:8px;}
+  .gauge{width:320px; height:160px; position:relative; transform: translateY(6px);}
+  .gauge-face{position:absolute; left:0; top:0; width:100%; height:100%; border-radius:160px 160px 0 0; overflow:hidden; display:flex; align-items:end; justify-content:center; background:linear-gradient(180deg, rgba(20,40,30,0.04), rgba(0,0,0,0)); box-shadow: inset 0 -6px 18px rgba(0,0,0,0.4);}
+  .gauge-arc{position:absolute; inset:6px; border-radius:160px 160px 0 0; background: linear-gradient(90deg, rgba(126,249,182,0.06), rgba(124,240,255,0.035)); }
+  .gauge-center{position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--neon-2); box-shadow:0 0 12px rgba(124,240,255,0.6);}
+  
+  /* needle */
+  .needle-wrap{position:absolute; left:50%; bottom:8px; width:6px; height:120px; transform-origin:50% 92%; pointer-events:none;}
+  .needle{position:absolute; left:50%; bottom:0; width:6px; height:92px; transform-origin:50% 92%; background:linear-gradient(180deg, var(--neon), rgba(0,0,0,0.15)); border-radius:4px; box-shadow:0 6px 24px rgba(30,255,150,0.06), 0 0 20px rgba(126,249,182,0.06) inset; transform:rotate(-90deg);}
+  .needle::after{content:""; position:absolute; left:50%; top:-12px; transform:translateX(-50%); width:18px; height:18px; border-radius:50%; background:var(--neon-2); box-shadow:0 0 20px rgba(124,240,255,0.8);}
+  /* needle shake animation for strong reading */
+  @keyframes needle-vibe {
+    0% { transform: rotate(var(--angle)); }
+    25% { transform: rotate(calc(var(--angle) + 1.8deg)); }
+    50% { transform: rotate(calc(var(--angle) - 1.2deg)); }
+    75% { transform: rotate(calc(var(--angle) + 0.9deg)); }
+    100% { transform: rotate(var(--angle)); }
+  }
+  .needle.vibrating { animation: needle-vibe 0.18s infinite linear; }
+
+  /* tick labels */
+  .ticks{position:absolute; left:0; top:6px; width:100%; height:100%; pointer-events:none;}
+  .tick{position:absolute; left:50%; bottom:8px; transform-origin:50% 92%; background:transparent; color:var(--neon); font-size:12px; text-shadow: 0 0 6px rgba(0,255,170,0.04);}
+  .lbl{position:absolute; transform:translateX(-50%); bottom:6px; font-size:11px; color:rgba(190,255,220,0.85); opacity:0.95;}
+  
+  /* controls */
+  .controls{display:flex; gap:10px; margin-top:8px; align-items:center; flex-wrap:wrap;}
+  button.primary{background:linear-gradient(180deg,var(--neon), var(--neon-2)); color:#002426; border:none; padding:10px 14px; font-weight:700; border-radius:10px; box-shadow: 0 8px 30px rgba(126,249,182,0.08); cursor:pointer;}
+  button.ghost{background:transparent; color:var(--neon); border:1px solid rgba(126,249,182,0.08); padding:8px 12px; border-radius:10px; cursor:pointer;}
+  .small{font-size:13px; color:rgba(200,255,220,0.9);}
+  .meter{display:flex; gap:8px; margin-top:12px; align-items:center; justify-content:space-between;}
+  .meter .bar{height:10px; background:rgba(126,249,182,0.06); border-radius:999px; flex:1; overflow:hidden; border:1px solid rgba(255,255,255,0.02);}
+  .meter .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg, rgba(126,249,182,0.8), rgba(124,240,255,0.6)); box-shadow:0 8px 18px rgba(30,255,150,0.06); border-radius:999px; transition: width 0.12s linear;}
+  
+  /* readouts */
+  .readouts{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px;}
+  .tile{background:var(--glass); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-size:13px;}
+  .tile .num{font-size:18px; font-weight:700; color:var(--neon-2);}
+
+  footer.note{margin-top:14px; font-size:12px; color:rgba(180,255,200,0.6); opacity:0.9;}
+  
+  /* modal */
+  .modal-back{position:fixed; inset:0; background:linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.75)); display:none; align-items:center; justify-content:center; z-index:60;}
+  .modal{width:min(720px,92vw); background:linear-gradient(180deg, rgba(6,16,20,0.95), rgba(4,8,12,0.98)); border-radius:12px; padding:18px; border:1px solid rgba(130,255,200,0.03);}
+  .modal h2{margin:0; color:var(--neon-2);}
+  .modal .desc{margin-top:8px; color:rgba(200,255,220,0.95); font-size:14px;}
+  .modal .row{display:flex; gap:12px; margin-top:12px; flex-wrap:wrap;}
+  .modal .bigval{font-size:34px; color:var(--neon-2); font-weight:800;}
+  .modal .meaning{margin-top:10px; font-size:14px; color:rgba(200,255,220,0.95);}
+
+  /* responsive */
+  @media (max-width:820px){
+    .mainrow{flex-direction:column;}
+    .right{width:100%;}
+    .gauge{width:100%; height:160px;}
+  }
 </style>
 </head>
 <body>
-  <div class="card" role="main">
-    <h1>Paranometer — Live-Neigungs-Sound</h1>
-    <p class="lead">Drücke START, um Sensoren + Audio freizugeben. Kippe dein Handy — der Ton ändert sich live. (50 Hz → 4000 Hz)</p>
+  <div class="wrap">
+    <div class="panel" role="main" aria-live="polite">
+      <div class="head">
+        <div class="logo">P</div>
+        <div>
+          <h1>Paranometer — Energielevel Tester</h1>
+          <p class="lead">Kippe dein Gerät. Drücke <strong>Energielevel testen</strong> um Sensoren & Audio freizugeben. Der Zeiger und der Ton reagieren live.</p>
+        </div>
+      </div>
 
-    <div id="controls">
-      <button id="startBtn">START (Sensoren & Audio erlauben)</button>
-      <button id="stopBtn" class="secondary" style="display:none">STOP</button>
-      <div id="permHint" class="small" style="margin-left:8px">Safari/iOS: Tippe den START-Button und erlaube die Zugriffe.</div>
+      <div class="mainrow">
+        <div class="left">
+          <div class="gauge-wrap" aria-hidden="false">
+            <div class="gauge" id="gauge">
+              <div class="gauge-face">
+                <div class="gauge-arc"></div>
+                <div class="ticks" id="ticks"></div>
+                <div class="needle-wrap">
+                  <div class="needle" id="needle" style="--angle:-90deg;"></div>
+                </div>
+                <div class="gauge-center" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="primary" id="startBtn">Energielevel testen</button>
+            <button class="ghost" id="stopBtn" style="display:none">Stopp</button>
+            <button class="ghost" id="resultBtn" style="display:none">Ergebnis anzeigen</button>
+            <div style="flex:1"></div>
+            <div class="small" id="status">Bereit</div>
+          </div>
+
+          <div class="meter" aria-hidden="false">
+            <div style="display:flex; align-items:center; gap:10px; width:100%;">
+              <div style="min-width:86px; font-size:13px; color:rgba(200,255,220,0.95)">Paranormales Energielevel</div>
+              <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+              <div style="width:56px; text-align:right; font-weight:700; color:var(--neon-2)" id="percentText">0%</div>
+            </div>
+          </div>
+
+          <div class="readouts">
+            <div class="tile"><div class="small">Letzter Winkel</div><div class="num" id="tiltRead">—°</div></div>
+            <div class="tile"><div class="small">Frequenz</div><div class="num" id="freqRead">— Hz</div></div>
+            <div class="tile"><div class="small">Peak</div><div class="num" id="peakRead">—</div></div>
+            <div class="tile"><div class="small">Status</div><div class="num" id="modeRead">Aus</div></div>
+          </div>
+
+          <div class="note footer note">Hinweis: Safari iOS fragt nach Erlaubnis für Bewegungssensoren. Falls keine Daten erscheinen: Einstellungen → Safari → Bewegung prüfen.</div>
+        </div>
+
+        <div class="right">
+          <h3 style="margin:0 0 8px 0; color:var(--neon-2)">Live-Information</h3>
+          <p style="margin:0 0 12px 0; color:rgba(200,255,220,0.9)">Je schriller der Ton, desto höher das erkannte Energielevel.</p>
+
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div style="flex:1">
+              <div style="font-size:12px; color:rgba(200,255,220,0.9)">Beta (vor/zurück)</div>
+              <div style="font-weight:700; font-size:18px; color:var(--neon-2)" id="betaVal">—°</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:12px; color:rgba(200,255,220,0.9)">Gamma (links/rechts)</div>
+              <div style="font-weight:700; font-size:18px; color:var(--neon-2)" id="gammaVal">—°</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div style="font-size:13px; color:rgba(200,255,220,0.9)">Einstellungen</div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="ghost" id="vibToggle">Vibration: AN</button>
+              <button class="ghost" id="calmToggle">Ton: AN</button>
+            </div>
+          </div>
+
+          <div style="margin-top:14px; font-size:13px; color:rgba(200,255,220,0.85)">
+            <strong>Interpretation (Kurz):</strong>
+            <ul style="margin:8px 0 0 18px; padding:0; color:rgba(200,255,220,0.85)">
+              <li>0–20%: Keine bemerkenswerte Aktivität</li>
+              <li>21–50%: Leichte Störung — beobachte</li>
+              <li>51–80%: Signifikante Präsenz möglich</li>
+              <li>81–100%: Starke Aktivität — erhöhte Aufmerksamkeit empfohlen</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="status" id="status">Status: Bereit</div>
-
-    <div class="readout" aria-live="polite">
-      <div class="tile">
-        <div class="small">beta (front/back)</div>
-        <div id="beta" class="big">—</div>
+  <!-- Modal Ergebnis -->
+  <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document">
+      <h2>Ergebnis — Paranormales Energieprofil</h2>
+      <div class="desc" id="modalDesc">Lade...</div>
+      <div class="row" style="margin-top:12px;">
+        <div style="flex:1">
+          <div class="small">Maximales Level (Peak)</div>
+          <div class="bigval" id="modalPeak">—%</div>
+        </div>
+        <div style="flex:1">
+          <div class="small">Letzter Messwert</div>
+          <div class="bigval" id="modalLast">—%</div>
+        </div>
       </div>
-      <div class="tile">
-        <div class="small">gamma (left/right)</div>
-        <div id="gamma" class="big">—</div>
+      <div class="meaning" id="modalMeaning">
       </div>
-      <div class="tile">
-        <div class="small">Tilt (kombiniert)</div>
-        <div id="tilt" class="big">—</div>
-      </div>
-      <div class="tile">
-        <div class="small">Frequenz</div>
-        <div id="freq" class="big">— Hz</div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+        <button class="ghost" id="modalClose">Zurück</button>
+        <button class="primary" id="modalReset">Neu testen</button>
       </div>
     </div>
-
-    <div class="hint">
-      Tipp: Nach dem Drücken von START laufender Ton → kipp das Gerät. Falls nichts passiert: Safari Einstellungen prüfen (Website Zugriff auf Bewegung/Ort).
-    </div>
-
-    <footer>© Paranometer — WebAudio, DeviceOrientation. (50–4000 Hz, A2 Variante)</footer>
   </div>
 
 <script>
 (() => {
-  // Konfiguration
-  const MIN_FREQ = 50;    // waagrecht -> Bass
-  const MAX_FREQ = 4000;  // senkrecht -> schrill
-  const SMOOTH_TIME = 0.05; // Sekunden für frequency smoothing
+  // CONFIG
+  const MIN_FREQ = 50;
+  const MAX_FREQ = 4000;
+  const SMOOTH_TIME = 0.05;
+  const VIBRATION_THRESHOLD_FREQ = 3000; // Hz -> start vibration/haptics
+  const VIBRATION_COOLDOWN_MS = 900;
 
-  // UI
+  // UI elements
   const startBtn = document.getElementById('startBtn');
   const stopBtn  = document.getElementById('stopBtn');
+  const resultBtn = document.getElementById('resultBtn');
   const statusEl = document.getElementById('status');
-  const betaEl   = document.getElementById('beta');
-  const gammaEl  = document.getElementById('gamma');
-  const tiltEl   = document.getElementById('tilt');
-  const freqEl   = document.getElementById('freq');
+  const needle = document.getElementById('needle');
+  const barFill = document.getElementById('barFill');
+  const percentText = document.getElementById('percentText');
+  const tiltRead = document.getElementById('tiltRead');
+  const freqRead = document.getElementById('freqRead');
+  const peakRead = document.getElementById('peakRead');
+  const modeRead = document.getElementById('modeRead');
+  const betaVal = document.getElementById('betaVal');
+  const gammaVal = document.getElementById('gammaVal');
+  const vibToggle = document.getElementById('vibToggle');
+  const calmToggle = document.getElementById('calmToggle');
 
-  // Audio nodes
+  const modalBack = document.getElementById('modalBack');
+  const modalDesc = document.getElementById('modalDesc');
+  const modalPeak = document.getElementById('modalPeak');
+  const modalLast = document.getElementById('modalLast');
+  const modalMeaning = document.getElementById('modalMeaning');
+  const modalClose = document.getElementById('modalClose');
+  const modalReset = document.getElementById('modalReset');
+
+  // Audio
   let audioCtx = null;
   let osc = null;
   let masterGain = null;
   let filter = null;
   let running = false;
 
-  // Last known orientation
-  let lastBeta = 0, lastGamma = 0;
+  // sensor
+  let lastBeta = 0;
+  let lastGamma = 0;
+  let lastTilt = 0;
+  let lastFreq = 0;
 
-  // Map tilt (0..90) -> frequency
+  // stats
+  let peakPercent = 0;
+  let recording = false;
+
+  // vibration state
+  let vibEnabled = true;
+  let toneEnabled = true;
+  let lastVibAt = 0;
+
+  // helper clamp
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+  // Mapping tilt (0..90) -> frequency
   function tiltToFreq(tilt) {
-    // tilt expected 0..90
-    const t = Math.min(Math.max(tilt, 0), 90) / 90;
+    const t = clamp(tilt,0,90)/90;
     return MIN_FREQ + (MAX_FREQ - MIN_FREQ) * t;
   }
+  // Frequency -> percent 0..100
+  function freqToPercent(freq) {
+    const p = (clamp(freq,MIN_FREQ,MAX_FREQ)-MIN_FREQ) / (MAX_FREQ - MIN_FREQ);
+    return Math.round(p*100);
+  }
 
-  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  // needle: map percent 0..100 -> angle -90..+90
+  function percentToAngle(percent) {
+    return -90 + (percent/100)*180;
+  }
 
-  // Smoothly update oscillator frequency
+  // Smooth frequency setter
   function setFrequencySmooth(value) {
     if (!audioCtx || !osc) return;
     const now = audioCtx.currentTime;
-    // Using exponential ramp avoids clicks; but frequency must be > 0
-    // We'll use linearRampToValueAtTime for compatibility, preceded by cancelScheduledValues
     try {
       osc.frequency.cancelScheduledValues(now);
       osc.frequency.setValueAtTime(osc.frequency.value || value, now);
       osc.frequency.linearRampToValueAtTime(value, now + SMOOTH_TIME);
-    } catch (e) {
-      // fallback
-      try { osc.frequency.value = value; } catch(e2){}
+    } catch(e) {
+      try { osc.frequency.value = value; } catch(e){}
     }
   }
 
-  // Create and start the audio graph
+  // Start audio graph
   function startAudio() {
     if (running) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    // create nodes
     osc = audioCtx.createOscillator();
     masterGain = audioCtx.createGain();
     filter = audioCtx.createBiquadFilter();
 
-    // Oscillator
     osc.type = 'sine';
     osc.frequency.value = MIN_FREQ;
 
-    // Filter to make low end 'darker' (we'll modulate filter.frequency along with pitch)
     filter.type = 'lowpass';
-    filter.frequency.value = 2000; // initial
+    filter.frequency.value = 2000;
     filter.Q.value = 0.7;
 
-    // Master gain: keep volume reasonable
     masterGain.gain.value = 0.12;
 
-    // connect: osc -> filter -> gain -> dest
     osc.connect(filter);
     filter.connect(masterGain);
     masterGain.connect(audioCtx.destination);
 
-    // start oscillator
-    try {
-      osc.start();
-    } catch(e) {
-      // ignore if already started
-    }
+    try { osc.start(); } catch(e){}
 
     running = true;
-    statusEl.textContent = 'Status: Audio läuft — Gerät kippen, um Ton zu ändern.';
+    modeRead.textContent = 'Läuft';
+    statusEl.textContent = 'Audio aktiv — Gerät kippen.';
     startBtn.style.display = 'none';
     stopBtn.style.display = 'inline-block';
+    resultBtn.style.display = 'inline-block';
+    recording = true;
   }
 
-  function stopAudio() {
+  function stopAudioClean() {
     if (!running) return;
-    try {
-      osc.stop();
-    } catch(e){}
+    try { osc.stop(); } catch(e){}
     try { audioCtx.close(); } catch(e){}
-    audioCtx = null; osc = null; masterGain = null; filter = null; running = false;
-    statusEl.textContent = 'Status: Gestoppt';
+    audioCtx = null; osc = null; masterGain = null; filter = null;
+    running = false;
+    recording = false;
+    statusEl.textContent = 'Gestoppt';
+    modeRead.textContent = 'Aus';
     startBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
-    betaEl.textContent = '—'; gammaEl.textContent = '—'; tiltEl.textContent = '—'; freqEl.textContent = '— Hz';
+    resultBtn.style.display = 'none';
   }
 
-  // Called for each deviceorientation event
+  // Sensor handler
   function handleOrientation(ev) {
     if (!ev) return;
-    // Beta: Rotation around X axis — front/back tilt (deg)
-    // Gamma: Rotation around Y axis — left/right tilt (deg)
-    const beta = typeof ev.beta === 'number' ? ev.beta : 0;
-    const gamma = typeof ev.gamma === 'number' ? ev.gamma : 0;
-
+    const beta = (typeof ev.beta === 'number') ? ev.beta : 0;
+    const gamma = (typeof ev.gamma === 'number') ? ev.gamma : 0;
     lastBeta = beta; lastGamma = gamma;
 
-    // compute a combined tilt magnitude:
-    // Use absolute beta & gamma, combine as vector magnitude,
-    // then clamp to max 90 degrees to map 0..90 -> freq range.
+    // combine magnitude
     const absBeta = Math.abs(beta);
     const absGamma = Math.abs(gamma);
-    let tilt = Math.sqrt(absBeta*absBeta + absGamma*absGamma) / Math.SQRT2; // scale so typical max ~90
-    // ensure clamp 0..90
-    tilt = clamp(tilt, 0, 90);
+    let tilt = Math.sqrt(absBeta*absBeta + absGamma*absGamma) / Math.SQRT2;
+    tilt = clamp(tilt,0,90);
 
-    // Map tilt to frequency
     const freq = tiltToFreq(tilt);
+    const percent = freqToPercent(freq);
 
-    // Update UI
-    betaEl.textContent = beta.toFixed(1) + '°';
-    gammaEl.textContent = gamma.toFixed(1) + '°';
-    tiltEl.textContent = tilt.toFixed(1) + '°';
-    freqEl.textContent = Math.round(freq) + ' Hz';
+    // update stats
+    lastTilt = tilt;
+    lastFreq = freq;
+    if (percent > peakPercent) peakPercent = percent;
 
-    // Update audio if running
-    if (running && audioCtx && osc) {
-      // Smooth frequency change
+    // update UI values
+    betaVal.textContent = beta.toFixed(1) + '°';
+    gammaVal.textContent = gamma.toFixed(1) + '°';
+    tiltRead.textContent = tilt.toFixed(1) + '°';
+    freqRead.textContent = Math.round(freq) + ' Hz';
+    peakRead.textContent = peakPercent + '%';
+    percentText.textContent = percent + '%';
+    barFill.style.width = percent + '%';
+
+    // needle rotation
+    const angle = percentToAngle(percent);
+    needle.style.setProperty('--angle', angle + 'deg');
+    // set explicit transform as fallback
+    needle.style.transform = `rotate(${angle}deg)`;
+
+    // add vibrating needle class when level very high
+    if (percent >= 90) {
+      needle.classList.add('vibrating');
+    } else {
+      needle.classList.remove('vibrating');
+    }
+
+    // audio update
+    if (running && toneEnabled && audioCtx && osc) {
       setFrequencySmooth(freq);
-
-      // Adjust lowpass filter to make low end darker at low freq and more open at high freq
-      // We'll map filter cutoff: when freq low -> cutoff relatively low; when freq high -> cutoff high
+      // adjust filter cutoff to make low frequencies darker
       const filterCut = clamp(Math.max(200, freq * 2), 200, 20000);
       try {
         filter.frequency.cancelScheduledValues(audioCtx.currentTime);
@@ -207,13 +387,25 @@
         filter.frequency.linearRampToValueAtTime(filterCut, audioCtx.currentTime + SMOOTH_TIME * 1.2);
       } catch(e){}
     }
+
+    // vibration/haptics: only sparingly to avoid continuous buzzing
+    const now = Date.now();
+    if (vibEnabled && percent >= Math.round(freqToPercent(VIBRATION_THRESHOLD_FREQ)) && (now - lastVibAt) > VIBRATION_COOLDOWN_MS) {
+      lastVibAt = now;
+      // try navigator.vibrate
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate([120]);
+        }
+      } catch(e){}
+    }
+
+    lastTilt = tilt;
   }
 
-  // Permission flow for iOS Safari and others
+  // Permission flow for iOS
   async function requestSensorPermissionIfNeeded() {
-    // iOS 13+ requires DeviceOrientationEvent.requestPermission()
-    if (typeof DeviceOrientationEvent !== 'undefined' &&
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         const result = await DeviceOrientationEvent.requestPermission();
         return result === 'granted';
@@ -222,80 +414,156 @@
         return false;
       }
     } else {
-      // Non-iOS or older: no explicit permission call required
       return true;
     }
   }
 
-  // Main start button handler
+  // Start button handler
   startBtn.addEventListener('click', async () => {
-    statusEl.textContent = 'Status: Fordere Sensor-Zugriff an...';
-
-    const sensorOk = await requestSensorPermissionIfNeeded();
-    if (!sensorOk) {
-      statusEl.textContent = 'Status: Sensor-Zugriff verweigert. Bitte in Safari die Berechtigung erlauben.';
+    statusEl.textContent = 'Fordere Sensor-Zugriff an...';
+    const ok = await requestSensorPermissionIfNeeded();
+    if (!ok) {
+      statusEl.textContent = 'Sensor-Zugriff verweigert. Bitte Safari Einstellungen prüfen.';
       return;
     }
 
-    // Setup audio and ensure it is resumed/unlocked by user gesture
+    // start audio and resume to unlock iOS audio
     try {
-      // Create audio context if not exists and resume it (iOS requires user gesture)
-      if (!audioCtx) {
-        startAudio();
-      } else {
-        // resume if suspended
-        await audioCtx.resume();
-      }
-    } catch (err) {
-      console.warn('AudioContext Fehler:', err);
-      statusEl.textContent = 'Status: Fehler beim Erstellen des AudioContext.';
+      if (!audioCtx) startAudio();
+      else await audioCtx.resume();
+    } catch (e) {
+      console.warn('Audio Fehler', e);
+      statusEl.textContent = 'Fehler beim Audio starten.';
       return;
     }
 
-    // Add deviceorientation listener
-    // Use passive:false? Not necessary; we just listen.
+    // register sensor listener
     window.addEventListener('deviceorientation', handleOrientation, true);
 
-    // Also attempt devicemotion as fallback (rare)
-    // window.addEventListener('devicemotion', ...)
-
-    statusEl.textContent = 'Status: Sensoren aktiv. Kippe dein Gerät — der Ton passt sich an.';
+    // Set UI
+    statusEl.textContent = 'Läuft — kippe das Gerät.';
+    modeRead.textContent = 'Läuft';
   });
 
-  // Stop button
+  // Stop button handler
   stopBtn.addEventListener('click', () => {
     window.removeEventListener('deviceorientation', handleOrientation, true);
-    stopAudio();
+    stopAudioClean();
+    statusEl.textContent = 'Gestoppt';
   });
 
-  // When page becomes hidden, pause audio (good practice)
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      if (audioCtx && audioCtx.state === 'running') {
-        audioCtx.suspend();
-        statusEl.textContent = 'Status: Seite verborgen — Audio pausiert.';
-      }
+  // Ergebnis button: show modal and pause audio
+  resultBtn.addEventListener('click', () => {
+    // pause audio
+    try { if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch(e){}
+    statusEl.textContent = 'Ergebnis angezeigt';
+    // show modal & content
+    showResult();
+  });
+
+  function showResult() {
+    modalBack.style.display = 'flex';
+    modalBack.setAttribute('aria-hidden','false');
+    modalDesc.textContent = "Analyse des letzten Messlaufs:";
+    modalPeak.textContent = peakPercent + '%';
+    modalLast.textContent = freqToPercent(lastFreq) + '%';
+
+    // interpret
+    const p = peakPercent;
+    let meaning = '';
+    if (p <= 20) {
+      meaning = "Geringe Aktivität — Es gibt keine belastbaren Hinweise für paranormale Präsenz. Die Umgebung ist ruhig.";
+    } else if (p <= 50) {
+      meaning = "Leichte Aktivität — Schwache Einflüsse wurden registriert. Beobachten Sie das Umfeld weiter.";
+    } else if (p <= 80) {
+      meaning = "Signifikante Aktivität — Mehrere Indikatoren sprechen für eine mögliche Präsenz. Vorsicht und Dokumentation empfohlen.";
     } else {
-      if (audioCtx && audioCtx.state === 'suspended' && running) {
-        audioCtx.resume();
-        statusEl.textContent = 'Status: Fortgesetzt — Sensoren aktiv.';
-      }
+      meaning = "Starke Aktivität — Deutliche energetische Signaturen. Reduzieren Sie Störungen, dokumentieren Sie Ort und Zeit, und verhalten Sie sich bedacht.";
+    }
+    modalMeaning.textContent = meaning;
+  }
+
+  modalClose.addEventListener('click', () => {
+    modalBack.style.display = 'none';
+    modalBack.setAttribute('aria-hidden','true');
+    statusEl.textContent = 'Lauf pausiert — Neues Testen mit „Energielevel testen“.';
+  });
+
+  modalReset.addEventListener('click', () => {
+    modalBack.style.display = 'none';
+    modalBack.setAttribute('aria-hidden','true');
+    // reset stats and restart
+    peakPercent = 0;
+    peakRead.textContent = '—';
+    percentText.textContent = '0%';
+    barFill.style.width = '0%';
+    betaVal.textContent = '—°'; gammaVal.textContent = '—°'; tiltRead.textContent = '—°'; freqRead.textContent = '— Hz';
+    // resume sensor & audio
+    try {
+      if (!audioCtx) startAudio();
+      else audioCtx.resume();
+      window.addEventListener('deviceorientation', handleOrientation, true);
+      statusEl.textContent = 'Neu gestartet — kippe das Gerät.';
+    } catch(e){
+      statusEl.textContent = 'Fehler beim Neustart.';
     }
   });
 
-  // Friendly fallback message when DeviceOrientation is not supported
+  // toggles
+  vibToggle.addEventListener('click', () => {
+    vibEnabled = !vibEnabled;
+    vibToggle.textContent = 'Vibration: ' + (vibEnabled ? 'AN' : 'AUS');
+  });
+  calmToggle.addEventListener('click', () => {
+    toneEnabled = !toneEnabled;
+    calmToggle.textContent = 'Ton: ' + (toneEnabled ? 'AN' : 'AUS');
+    if (!toneEnabled && audioCtx && audioCtx.state === 'running') {
+      // mute master gain
+      if (masterGain) masterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    } else if (toneEnabled && masterGain && audioCtx && audioCtx.state === 'running') {
+      masterGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    }
+  });
+
+  // set ticks (0,25,50,75,100)
+  const ticksEl = document.getElementById('ticks');
+  function createTicks() {
+    ticksEl.innerHTML = '';
+    const labels = [0,25,50,75,100];
+    labels.forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'tick';
+      const angle = percentToAngle(p);
+      el.style.transform = `rotate(${angle}deg) translateY(-2px)`;
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = p + '%';
+      lbl.style.transform = `rotate(${-angle}deg)`; // keep label upright
+      el.appendChild(lbl);
+      ticksEl.appendChild(el);
+    });
+  }
+  createTicks();
+
+  // friendly fallback
   setTimeout(() => {
     if (typeof DeviceOrientationEvent === 'undefined' && typeof window.DeviceMotionEvent === 'undefined') {
-      statusEl.textContent = 'Status: DeviceOrientation/DeviceMotion wird von diesem Gerät/Browser nicht unterstützt.';
+      statusEl.textContent = 'DeviceOrientation/DeviceMotion wird von diesem Gerät/Browser nicht unterstützt.';
     }
   }, 800);
 
-  // Helpful UX: pressing anywhere also resumes audio on some devices
+  // best-effort resume on touchend
   document.body.addEventListener('touchend', async () => {
     if (audioCtx && audioCtx.state === 'suspended' && running) {
       try { await audioCtx.resume(); } catch(e){}
     }
   }, {passive:true});
+
+  // clean unload
+  window.addEventListener('pagehide', () => {
+    try { window.removeEventListener('deviceorientation', handleOrientation, true); } catch(e){}
+    try { if (audioCtx) audioCtx.close(); } catch(e){}
+  });
 
 })();
 </script>
