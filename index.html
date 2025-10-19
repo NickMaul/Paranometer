@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>Paranometer — Tilt to Tone</title>
+<style>
+  :root { --bg:#0f1720; --card:#0b1220; --accent:#8bd5ff; --muted:#94a3b8; }
+  html,body { height:100%; margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto; background:linear-gradient(180deg,#071021,#081426); color:#dbe7f3; }
+  .wrap { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+  .card { width:100%; max-width:420px; background:rgba(255,255,255,0.03); border-radius:14px; padding:22px; box-shadow:0 6px 30px rgba(2,6,23,0.6); text-align:center; }
+  h1 { margin:0 0 10px 0; font-size:20px; letter-spacing:0.2px; }
+  p { margin:6px 0 16px 0; color:var(--muted); font-size:14px; }
+  .display { font-size:18px; background:rgba(255,255,255,0.02); padding:10px; border-radius:10px; margin-bottom:16px; }
+  #holdBtn {
+    -webkit-tap-highlight-color: transparent;
+    display:inline-block; user-select:none;
+    background:linear-gradient(180deg,var(--accent),#6cc8ff);
+    color:#012; font-weight:700; padding:18px 28px; border-radius:999px; font-size:16px; border:none;
+    box-shadow:0 6px 18px rgba(0,0,0,0.45);
+    touch-action:manipulation;
+  }
+  #holdBtn.inactive { background:rgba(255,255,255,0.06); color:var(--muted); box-shadow:none; }
+  small.note { display:block; margin-top:10px; color:var(--muted); }
+  .bars { display:flex; gap:6px; justify-content:center; margin-top:12px; height:18px; }
+  .bar { width:8px; background:linear-gradient(180deg,#8bd5ff,#3ab0ff); border-radius:4px; opacity:0.9; transform-origin:bottom; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Paranometer — Halte zum Scannen</h1>
+      <p>Halte den Knopf gedrückt (Touch/Mouse). Neigung → Tonhöhe.</p>
+
+      <div class="display" id="readout">
+        Bereit. Taste drücken, um Sensorzugriff & Audio zu erlauben.
+        <div style="margin-top:8px;font-size:13px;color:var(--muted)">Sensor: <span id="sensorStatus">nicht aktiviert</span></div>
+      </div>
+
+      <button id="holdBtn" class="inactive">Drücke & halte</button>
+      <small class="note">iOS: beim ersten Mal wird um Erlaubnis gefragt.</small>
+
+      <div class="bars" aria-hidden="true" id="bars">
+        <div class="bar" style="height:6px"></div>
+        <div class="bar" style="height:10px"></div>
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:10px"></div>
+        <div class="bar" style="height:6px"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const holdBtn = document.getElementById('holdBtn');
+  const readout = document.getElementById('readout');
+  const sensorStatus = document.getElementById('sensorStatus');
+  const bars = Array.from(document.querySelectorAll('.bar'));
+
+  let audioCtx = null;
+  let osc = null;
+  let gain = null;
+  let running = false;
+  let lastOrient = { beta: 0, gamma: 0 }; // beta: front-back, gamma: left-right
+  let rafId = null;
+
+  // smoothing
+  let smoothBeta = 0;
+  let smoothGamma = 0;
+  const alpha = 0.15; // smoothing factor: 0..1
+
+  // Map tilt to frequency
+  function tiltToFreq(beta, gamma) {
+    // beta approx -180..180 (front/back), gamma approx -90..90 (left/right)
+    // use combined tilt magnitude but keep sign of forward/back for interesting mapping
+    const mag = Math.sqrt(beta*beta + gamma*gamma);
+    // clamp mag
+    const m = Math.min(mag, 90);
+    // map 0..90 -> 150..1500 Hz (adjust range to taste)
+    const minF = 160;
+    const maxF = 1500;
+    const freq = minF + (m / 90) * (maxF - minF);
+    return Math.max(40, freq);
+  }
+
+  // Update oscillator frequency and UI
+  function doUpdate() {
+    // smoothing
+    smoothBeta += (lastOrient.beta - smoothBeta) * alpha;
+    smoothGamma += (lastOrient.gamma - smoothGamma) * alpha;
+
+    const freq = tiltToFreq(smoothBeta, smoothGamma);
+    if (osc) {
+      // smooth freq change
+      osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.03);
+    }
+
+    // UI update
+    const tiltVal = Math.sqrt(smoothBeta*smoothBeta + smoothGamma*smoothGamma);
+    readout.innerHTML = `Neigung: β=${smoothBeta.toFixed(1)}°, γ=${smoothGamma.toFixed(1)}°<br>Tonhöhe ≈ ${Math.round(freq)} Hz`;
+    // animate bars based on frequency/magnitude
+    const norm = Math.min(1, tiltVal / 90);
+    bars.forEach((b, i) => {
+      const scale = 0.3 + norm * (0.4 + i * 0.15);
+      b.style.transform = `scaleY(${scale})`;
+      b.style.opacity = `${0.5 + norm*0.5}`;
+    });
+
+    rafId = requestAnimationFrame(doUpdate);
+  }
+
+  // Sensor event handler
+  function onDeviceOrientation(e) {
+    // use beta (front/back tilt) and gamma (left/right tilt)
+    // Some browsers return nulls
+    if (e && (e.beta !== null || e.gamma !== null)) {
+      lastOrient.beta = e.beta || 0;
+      lastOrient.gamma = e.gamma || 0;
+    }
+  }
+
+  // Request permission for iOS 13+ if required
+  async function ensureMotionPermission() {
+    // Some iOS versions require DeviceMotionEvent.requestPermission()
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceMotionEvent.requestPermission();
+        if (res !== 'granted') throw new Error('Motion permission denied');
+        sensorStatus.textContent = 'berechtigt (DeviceMotion)';
+        return true;
+      } catch (err) {
+        sensorStatus.textContent = 'erlaubnis verweigert';
+        throw err;
+      }
+    }
+    // Some browsers use DeviceOrientationEvent.requestPermission (older variants)
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== 'granted') throw new Error('Motion permission denied');
+        sensorStatus.textContent = 'berechtigt (DeviceOrientation)';
+        return true;
+      } catch (err) {
+        sensorStatus.textContent = 'erlaubnis verweigert';
+        throw err;
+      }
+    }
+    // If no permission API, assume available
+    sensorStatus.textContent = 'aktiv (keine expl. Permission erforderlich)';
+    return true;
+  }
+
+  // Start audio & sensors
+  async function startScanning() {
+    if (running) return;
+    try {
+      await ensureMotionPermission();
+    } catch (err) {
+      readout.textContent = 'Motion-Zugriff nicht erlaubt. App beendet.';
+      return;
+    }
+
+    // Create AudioContext on first user gesture if not existing
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // create oscillator + gain
+    osc = audioCtx.createOscillator();
+    osc.type = 'sine'; // change to 'triangle' or 'sawtooth' for other timbres
+    gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    // gentle fade-in
+    const now = audioCtx.currentTime;
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.001);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.12);
+
+    // start oscillator
+    osc.start();
+
+    // add sensor listener
+    window.addEventListener('deviceorientation', onDeviceOrientation, true);
+
+    // start update loop
+    running = true;
+    holdBtn.classList.remove('inactive');
+    doUpdate();
+  }
+
+  // Stop audio & sensors
+  function stopScanning() {
+    if (!running) return;
+    // fade out and stop
+    if (gain) {
+      const now = audioCtx.currentTime;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.12);
+    }
+    if (osc) {
+      try {
+        osc.stop(audioCtx.currentTime + 0.13);
+      } catch(e){/*already stopped*/}
+    }
+
+    // remove sensor listener
+    window.removeEventListener('deviceorientation', onDeviceOrientation, true);
+
+    // cancel update
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    running = false;
+    holdBtn.classList.add('inactive');
+
+    // slight UI reset
+    readout.innerHTML = 'Gestoppt. Taste drücken, um erneut zu scannen.';
+    bars.forEach(b => { b.style.transform='scaleY(1)'; b.style.opacity='0.6'; });
+  }
+
+  // Pointer/Touch handling for press-and-hold (works for mouse & touch)
+  function attachPressHold(el) {
+    let pointerDown = false;
+
+    const onDown = async (ev) => {
+      ev.preventDefault();
+      pointerDown = true;
+      // Ensure audio context is resumed (some browsers require resume)
+      if (audioCtx && audioCtx.state === 'suspended') {
+        try { await audioCtx.resume(); } catch(_) {}
+      }
+      await startScanning();
+    };
+    const onUp = (ev) => {
+      if (!pointerDown) return;
+      pointerDown = false;
+      stopScanning();
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointerup', onUp);
+    el.addEventListener('touchstart', onDown, {passive:false});
+    window.addEventListener('touchend', onUp);
+    // in case touchcancel or pointercancel
+    window.addEventListener('pointercancel', onUp);
+    window.addEventListener('touchcancel', onUp);
+  }
+
+  // Init
+  holdBtn.classList.add('inactive');
+  sensorStatus.textContent = 'nicht aktiviert';
+  attachPressHold(holdBtn);
+
+  // Extra: quick detection if sensor events are present at all
+  function sensorProbe() {
+    let triggered = false;
+    function probe(e) { triggered = true; window.removeEventListener('deviceorientation', probe); }
+    window.addEventListener('deviceorientation', probe);
+    setTimeout(() => {
+      if (!triggered) {
+        sensorStatus.textContent = 'Sensor nicht verfügbar in diesem Browser';
+      }
+    }, 800);
+  }
+  sensorProbe();
+
+  // Prevent screen from sleeping while scanning (optional; requires Wake Lock API)
+  let wakeLock = null;
+  async function requestWakeLock() {
+    if ('wakeLock' in navigator && running) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) { /* ignore */ }
+    }
+  }
+  // attach wake lock on start/stop
+  const origStart = startScanning;
+  startScanning = async () => { await origStart(); await requestWakeLock(); };
+  const origStop = stopScanning;
+  stopScanning = () => { if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; } origStop(); };
+
+})();
+</script>
+</body>
+</html>
