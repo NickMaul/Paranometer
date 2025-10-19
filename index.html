@@ -1,114 +1,117 @@
 <!doctype html>
 <html lang="de">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Paranometer — Energielevel Tester</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Paranometer — Energie-Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg1:#02040a;
-    --bg2:#07121a;
-    --card:#061018;
-    --neon:#7ef9b6;
-    --neon-2:#7cf0ff;
-    --muted:rgba(190,255,220,0.12);
-    --glass: rgba(255,255,255,0.03);
+    --bg:#060709;
+    --panel:#0d1113;
+    --hud:#07c76b; /* neon green */
+    --accent:#19e0b8;
+    --muted: rgba(255,255,255,0.04);
+    --danger:#e03b3b;
   }
-  html,body{height:100%; margin:0; font-family:"Space Grotesk",system-ui,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(1200px 600px at 10% 10%, rgba(0,255,150,0.02), transparent 6%), linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 100%); color:var(--neon); -webkit-font-smoothing:antialiased;}
-  .wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:28px;}
-  .panel{width:min(980px,96vw); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:16px; padding:20px; box-shadow: 0 12px 40px rgba(1,6,10,0.6); border:1px solid rgba(124,240,255,0.03);}
-  .head{display:flex; align-items:center; gap:14px;}
-  .logo{width:58px; height:58px; background:linear-gradient(135deg, rgba(126,249,182,0.12), rgba(124,240,255,0.06)); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--neon-2); font-weight:700; font-size:22px; box-shadow: 0 6px 20px rgba(12,255,170,0.03) inset;}
-  h1{margin:0; font-size:20px; letter-spacing:0.6px; color:var(--neon-2);}
-  p.lead{margin:6px 0 0 0; color:rgba(200,255,220,0.9); font-size:13px; opacity:0.95;}
-  
-  .mainrow{display:flex; gap:18px; margin-top:18px; align-items:stretch; flex-wrap:wrap;}
-  .left{flex:1 1 380px; min-width:300px; background:var(--card); border-radius:12px; padding:16px; border:1px solid var(--muted);}
-  .right{width:320px; min-width:260px; background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent); border-radius:12px; padding:14px; border:1px solid var(--muted);}
-  
+  *{box-sizing:border-box}
+  body{margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:
+        radial-gradient(800px 400px at 10% 10%, rgba(7,199,107,0.03), transparent 6%),
+        linear-gradient(180deg,#030405 0%, #061012 100%);
+       color:var(--hud); -webkit-font-smoothing:antialiased;}
+  .container{width:min(980px,96vw); padding:20px;}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005)); border-radius:14px; border:1px solid rgba(7,199,107,0.06); padding:18px; box-shadow:0 14px 50px rgba(0,0,0,0.6)}
+  .header{display:flex; align-items:center; gap:14px}
+  .logo{width:58px;height:58px;border-radius:10px;background:linear-gradient(135deg, rgba(7,199,107,0.12), rgba(25,224,184,0.06));display:flex;align-items:center;justify-content:center;font-weight:700;color:#00110a;font-size:24px}
+  h1{margin:0;font-size:20px;color:var(--accent)}
+  p.lead{margin:6px 0 0 0; color:rgba(31,255,166,0.95); opacity:0.95; font-size:13px}
+  .row{display:flex; gap:18px; margin-top:16px; flex-wrap:wrap}
+  .left{flex:1; min-width:320px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02)); border-radius:12px; padding:16px; border:1px solid var(--muted)}
+  .right{width:300px; min-width:240px; border-radius:12px; padding:14px; background:transparent; color:rgba(180,255,210,0.95)}
+
   /* Gauge */
-  .gauge-wrap{display:flex; align-items:center; justify-content:center; position:relative; padding:8px;}
-  .gauge{width:320px; height:160px; position:relative; transform: translateY(6px);}
-  .gauge-face{position:absolute; left:0; top:0; width:100%; height:100%; border-radius:160px 160px 0 0; overflow:hidden; display:flex; align-items:end; justify-content:center; background:linear-gradient(180deg, rgba(20,40,30,0.04), rgba(0,0,0,0)); box-shadow: inset 0 -6px 18px rgba(0,0,0,0.4);}
-  .gauge-arc{position:absolute; inset:6px; border-radius:160px 160px 0 0; background: linear-gradient(90deg, rgba(126,249,182,0.06), rgba(124,240,255,0.035)); }
-  .gauge-center{position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--neon-2); box-shadow:0 0 12px rgba(124,240,255,0.6);}
-  
+  .gauge-wrap{position:relative; height:220px; display:flex; align-items:center; justify-content:center;}
+  .gauge{width:420px; height:220px; position:relative;}
+  .gauge-face{position:absolute; inset:0; border-radius:220px 220px 0 0; overflow:visible; background:linear-gradient(180deg, rgba(7,199,107,0.02), rgba(0,0,0,0)); box-shadow: inset 0 -8px 30px rgba(0,0,0,0.6);}
+  /* outer ticks */
+  .tick{position:absolute; left:50%; bottom:8px; transform-origin:50% 92%;}
+  .tick-line{width:2px; height:12px; background:rgba(7,199,107,0.12); transform-origin:50% 100%;}
+  .tick-label{position:absolute; bottom:22px; left:50%; transform:translateX(-50%); color:var(--hud); font-size:12px; letter-spacing:0.6px; text-shadow:0 4px 12px rgba(1,5,2,0.6)}
+
   /* needle */
-  .needle-wrap{position:absolute; left:50%; bottom:8px; width:6px; height:120px; transform-origin:50% 92%; pointer-events:none;}
-  .needle{position:absolute; left:50%; bottom:0; width:6px; height:92px; transform-origin:50% 92%; background:linear-gradient(180deg, var(--neon), rgba(0,0,0,0.15)); border-radius:4px; box-shadow:0 6px 24px rgba(30,255,150,0.06), 0 0 20px rgba(126,249,182,0.06) inset; transform:rotate(-90deg);}
-  .needle::after{content:""; position:absolute; left:50%; top:-12px; transform:translateX(-50%); width:18px; height:18px; border-radius:50%; background:var(--neon-2); box-shadow:0 0 20px rgba(124,240,255,0.8);}
-  /* needle shake animation for strong reading */
-  @keyframes needle-vibe {
+  .needle-wrap{position:absolute; left:50%; bottom:8px; width:6px; height:150px; transform-origin:50% 92%; pointer-events:none; z-index:20}
+  .needle{position:absolute; left:50%; bottom:0; width:6px; height:96px; transform-origin:50% 92%; border-radius:4px; background:linear-gradient(180deg, var(--hud), rgba(0,0,0,0.15)); transform:rotate(-90deg); box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 18px rgba(7,199,107,0.06) inset}
+  .needle::after{content:""; position:absolute; left:50%; top:-14px; transform:translateX(-50%); width:18px; height:18px; border-radius:50%; background:var(--accent); box-shadow:0 0 24px rgba(25,224,184,0.9)}
+  .needle.vibe{animation:needleShake 0.16s infinite linear}
+
+  @keyframes needleShake{
     0% { transform: rotate(var(--angle)); }
-    25% { transform: rotate(calc(var(--angle) + 1.8deg)); }
-    50% { transform: rotate(calc(var(--angle) - 1.2deg)); }
-    75% { transform: rotate(calc(var(--angle) + 0.9deg)); }
+    25% { transform: rotate(calc(var(--angle) + 2deg)); }
+    50% { transform: rotate(calc(var(--angle) - 1.4deg)); }
+    75% { transform: rotate(calc(var(--angle) + 1deg)); }
     100% { transform: rotate(var(--angle)); }
   }
-  .needle.vibrating { animation: needle-vibe 0.18s infinite linear; }
 
-  /* tick labels */
-  .ticks{position:absolute; left:0; top:6px; width:100%; height:100%; pointer-events:none;}
-  .tick{position:absolute; left:50%; bottom:8px; transform-origin:50% 92%; background:transparent; color:var(--neon); font-size:12px; text-shadow: 0 0 6px rgba(0,255,170,0.04);}
-  .lbl{position:absolute; transform:translateX(-50%); bottom:6px; font-size:11px; color:rgba(190,255,220,0.85); opacity:0.95;}
-  
-  /* controls */
-  .controls{display:flex; gap:10px; margin-top:8px; align-items:center; flex-wrap:wrap;}
-  button.primary{background:linear-gradient(180deg,var(--neon), var(--neon-2)); color:#002426; border:none; padding:10px 14px; font-weight:700; border-radius:10px; box-shadow: 0 8px 30px rgba(126,249,182,0.08); cursor:pointer;}
-  button.ghost{background:transparent; color:var(--neon); border:1px solid rgba(126,249,182,0.08); padding:8px 12px; border-radius:10px; cursor:pointer;}
-  .small{font-size:13px; color:rgba(200,255,220,0.9);}
-  .meter{display:flex; gap:8px; margin-top:12px; align-items:center; justify-content:space-between;}
-  .meter .bar{height:10px; background:rgba(126,249,182,0.06); border-radius:999px; flex:1; overflow:hidden; border:1px solid rgba(255,255,255,0.02);}
-  .meter .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg, rgba(126,249,182,0.8), rgba(124,240,255,0.6)); box-shadow:0 8px 18px rgba(30,255,150,0.06); border-radius:999px; transition: width 0.12s linear;}
-  
-  /* readouts */
-  .readouts{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px;}
-  .tile{background:var(--glass); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.02); font-size:13px;}
-  .tile .num{font-size:18px; font-weight:700; color:var(--neon-2);}
+  .gauge-center{position:absolute; left:50%; bottom:-8px; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow:0 0 18px rgba(25,224,184,0.7)}
 
-  footer.note{margin-top:14px; font-size:12px; color:rgba(180,255,200,0.6); opacity:0.9;}
-  
+  /* Controls */
+  .controls{display:flex; gap:10px; align-items:center; margin-top:10px}
+  button.primary{background:linear-gradient(180deg,var(--hud), var(--accent)); color:#02221a; border:none; padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow:0 8px 30px rgba(6,182,139,0.06)}
+  button.ghost{background:transparent; border:1px solid rgba(255,255,255,0.03); color:var(--hud); padding:8px 12px; border-radius:10px; cursor:pointer}
+  .status{margin-left:auto; color:rgba(150,255,200,0.9); font-size:13px}
+
+  /* meter bar */
+  .bar-wrap{display:flex; align-items:center; gap:12px; margin-top:12px}
+  .bar{height:12px; background:rgba(7,199,107,0.06); border-radius:999px; flex:1; overflow:hidden; border:1px solid rgba(255,255,255,0.02)}
+  .bar > i{display:block; height:100%; width:0%; background:linear-gradient(90deg, rgba(7,199,107,0.9), rgba(25,224,184,0.85)); transition:width 0.12s linear; box-shadow:0 10px 30px rgba(7,199,107,0.06)}
+
+  .right h3{margin:0;color:var(--accent)}
+  .right p{margin:6px 0 12px 0; color:rgba(180,255,210,0.9)}
+
+  .info-tile{background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.02); margin-bottom:8px}
+  .info-tile .val{font-size:22px; font-weight:800; color:var(--accent)}
+
   /* modal */
-  .modal-back{position:fixed; inset:0; background:linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0.75)); display:none; align-items:center; justify-content:center; z-index:60;}
-  .modal{width:min(720px,92vw); background:linear-gradient(180deg, rgba(6,16,20,0.95), rgba(4,8,12,0.98)); border-radius:12px; padding:18px; border:1px solid rgba(130,255,200,0.03);}
-  .modal h2{margin:0; color:var(--neon-2);}
-  .modal .desc{margin-top:8px; color:rgba(200,255,220,0.95); font-size:14px;}
-  .modal .row{display:flex; gap:12px; margin-top:12px; flex-wrap:wrap;}
-  .modal .bigval{font-size:34px; color:var(--neon-2); font-weight:800;}
-  .modal .meaning{margin-top:10px; font-size:14px; color:rgba(200,255,220,0.95);}
+  .modal-back{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index:60}
+  .modal{width:min(720px,92vw); background:linear-gradient(180deg,#071114,#030305); border-radius:12px; padding:18px; border:1px solid rgba(7,199,107,0.04)}
+  .modal h2{color:var(--accent); margin:0}
+  .modal p{color:rgba(180,255,210,0.95); margin:8px 0 0 0}
+  .modal .big{font-size:34px; font-weight:800; color:var(--accent); margin-top:10px}
 
   /* responsive */
   @media (max-width:820px){
-    .mainrow{flex-direction:column;}
-    .right{width:100%;}
-    .gauge{width:100%; height:160px;}
+    .row{flex-direction:column}
+    .right{width:100%}
+    .gauge{width:100%; height:200px}
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="container">
     <div class="panel" role="main" aria-live="polite">
-      <div class="head">
+      <div class="header">
         <div class="logo">P</div>
         <div>
-          <h1>Paranometer — Energielevel Tester</h1>
-          <p class="lead">Kippe dein Gerät. Drücke <strong>Energielevel testen</strong> um Sensoren & Audio freizugeben. Der Zeiger und der Ton reagieren live.</p>
+          <h1>Paranometer</h1>
+          <p class="lead">Energie-Scanner — drücke „Energielevel testen“ und lasse das Gerät die Umgebung ertasten.</p>
         </div>
+        <div style="margin-left:auto; font-size:12px; color:rgba(180,255,210,0.85)">Secure • Silent • Tactical</div>
       </div>
 
-      <div class="mainrow">
+      <div class="row">
         <div class="left">
-          <div class="gauge-wrap" aria-hidden="false">
+          <div class="gauge-wrap">
             <div class="gauge" id="gauge">
-              <div class="gauge-face">
-                <div class="gauge-arc"></div>
-                <div class="ticks" id="ticks"></div>
-                <div class="needle-wrap">
-                  <div class="needle" id="needle" style="--angle:-90deg;"></div>
-                </div>
-                <div class="gauge-center" aria-hidden="true"></div>
+              <div class="gauge-face"></div>
+
+              <!-- ticks will be inserted here -->
+              <div id="ticksContainer"></div>
+
+              <div class="needle-wrap">
+                <div class="needle" id="needle" style="--angle:-90deg;"></div>
               </div>
+
+              <div class="gauge-center"></div>
             </div>
           </div>
 
@@ -116,58 +119,37 @@
             <button class="primary" id="startBtn">Energielevel testen</button>
             <button class="ghost" id="stopBtn" style="display:none">Stopp</button>
             <button class="ghost" id="resultBtn" style="display:none">Ergebnis anzeigen</button>
-            <div style="flex:1"></div>
-            <div class="small" id="status">Bereit</div>
+            <div class="status" id="status">Bereit</div>
           </div>
 
-          <div class="meter" aria-hidden="false">
-            <div style="display:flex; align-items:center; gap:10px; width:100%;">
-              <div style="min-width:86px; font-size:13px; color:rgba(200,255,220,0.95)">Paranormales Energielevel</div>
-              <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
-              <div style="width:56px; text-align:right; font-weight:700; color:var(--neon-2)" id="percentText">0%</div>
-            </div>
+          <div class="bar-wrap" aria-hidden="false">
+            <div style="min-width:110px; color:rgba(180,255,210,0.95); font-weight:700">Paranormales Level</div>
+            <div class="bar"><i id="barFill"></i></div>
+            <div style="width:56px; text-align:right; color:var(--accent); font-weight:800" id="percentText">0%</div>
           </div>
-
-          <div class="readouts">
-            <div class="tile"><div class="small">Letzter Winkel</div><div class="num" id="tiltRead">—°</div></div>
-            <div class="tile"><div class="small">Frequenz</div><div class="num" id="freqRead">— Hz</div></div>
-            <div class="tile"><div class="small">Peak</div><div class="num" id="peakRead">—</div></div>
-            <div class="tile"><div class="small">Status</div><div class="num" id="modeRead">Aus</div></div>
-          </div>
-
-          <div class="note footer note">Hinweis: Safari iOS fragt nach Erlaubnis für Bewegungssensoren. Falls keine Daten erscheinen: Einstellungen → Safari → Bewegung prüfen.</div>
         </div>
 
         <div class="right">
-          <h3 style="margin:0 0 8px 0; color:var(--neon-2)">Live-Information</h3>
-          <p style="margin:0 0 12px 0; color:rgba(200,255,220,0.9)">Je schriller der Ton, desto höher das erkannte Energielevel.</p>
+          <h3>Monitore</h3>
+          <p>Der Scanner ist auf Empfang. Interpretiere das Ergebnis mit Bedacht.</p>
 
-          <div style="display:flex; gap:8px; align-items:center;">
-            <div style="flex:1">
-              <div style="font-size:12px; color:rgba(200,255,220,0.9)">Beta (vor/zurück)</div>
-              <div style="font-weight:700; font-size:18px; color:var(--neon-2)" id="betaVal">—°</div>
-            </div>
-            <div style="flex:1">
-              <div style="font-size:12px; color:rgba(200,255,220,0.9)">Gamma (links/rechts)</div>
-              <div style="font-weight:700; font-size:18px; color:var(--neon-2)" id="gammaVal">—°</div>
-            </div>
-          </div>
+          <div class="info-tile"><div style="font-size:12px">Momentanes Level</div><div class="val" id="currentVal">—%</div></div>
+          <div class="info-tile"><div style="font-size:12px">Letzte Messung</div><div class="val" id="lastVal">—%</div></div>
 
-          <div style="margin-top:14px">
-            <div style="font-size:13px; color:rgba(200,255,220,0.9)">Einstellungen</div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
+          <div style="margin-top:8px;">
+            <div style="display:flex; gap:8px;">
               <button class="ghost" id="vibToggle">Vibration: AN</button>
-              <button class="ghost" id="calmToggle">Ton: AN</button>
+              <button class="ghost" id="toneToggle">Ton: AN</button>
             </div>
           </div>
 
-          <div style="margin-top:14px; font-size:13px; color:rgba(200,255,220,0.85)">
-            <strong>Interpretation (Kurz):</strong>
-            <ul style="margin:8px 0 0 18px; padding:0; color:rgba(200,255,220,0.85)">
-              <li>0–20%: Keine bemerkenswerte Aktivität</li>
-              <li>21–50%: Leichte Störung — beobachte</li>
-              <li>51–80%: Signifikante Präsenz möglich</li>
-              <li>81–100%: Starke Aktivität — erhöhte Aufmerksamkeit empfohlen</li>
+          <div style="margin-top:12px; color:rgba(160,255,200,0.9); font-size:13px">
+            Stufen:
+            <ul style="margin:8px 0 0 18px; padding:0; color:rgba(160,255,200,0.9)">
+              <li>0–25%: Ruhig</li>
+              <li>26–50%: Verstärkt</li>
+              <li>51–75%: Aktiv</li>
+              <li>76–100%: Kritisch</li>
             </ul>
           </div>
         </div>
@@ -176,62 +158,45 @@
   </div>
 
   <!-- Modal Ergebnis -->
-  <div class="modal-back" id="modalBack" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal" role="document">
-      <h2>Ergebnis — Paranormales Energieprofil</h2>
-      <div class="desc" id="modalDesc">Lade...</div>
-      <div class="row" style="margin-top:12px;">
-        <div style="flex:1">
-          <div class="small">Maximales Level (Peak)</div>
-          <div class="bigval" id="modalPeak">—%</div>
-        </div>
-        <div style="flex:1">
-          <div class="small">Letzter Messwert</div>
-          <div class="bigval" id="modalLast">—%</div>
-        </div>
-      </div>
-      <div class="meaning" id="modalMeaning">
-      </div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px;">
+  <div class="modal-back" id="modalBack" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" >
+      <h2>Analyse — Paranormales Profil</h2>
+      <p id="modalText">Lade...</p>
+      <div class="big" id="modalPercent">—%</div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px">
         <button class="ghost" id="modalClose">Zurück</button>
-        <button class="primary" id="modalReset">Neu testen</button>
+        <button class="primary" id="modalRestart">Neu testen</button>
       </div>
     </div>
   </div>
 
 <script>
 (() => {
-  // CONFIG
+  // Configuration
   const MIN_FREQ = 50;
   const MAX_FREQ = 4000;
   const SMOOTH_TIME = 0.05;
-  const VIBRATION_THRESHOLD_FREQ = 3000; // Hz -> start vibration/haptics
+  const VIBRATION_THRESHOLD_PERCENT = 85; // percent threshold to vibrate/haptic
   const VIBRATION_COOLDOWN_MS = 900;
 
-  // UI elements
+  // DOM elements
   const startBtn = document.getElementById('startBtn');
-  const stopBtn  = document.getElementById('stopBtn');
+  const stopBtn = document.getElementById('stopBtn');
   const resultBtn = document.getElementById('resultBtn');
   const statusEl = document.getElementById('status');
   const needle = document.getElementById('needle');
   const barFill = document.getElementById('barFill');
   const percentText = document.getElementById('percentText');
-  const tiltRead = document.getElementById('tiltRead');
-  const freqRead = document.getElementById('freqRead');
-  const peakRead = document.getElementById('peakRead');
-  const modeRead = document.getElementById('modeRead');
-  const betaVal = document.getElementById('betaVal');
-  const gammaVal = document.getElementById('gammaVal');
+  const currentVal = document.getElementById('currentVal');
+  const lastVal = document.getElementById('lastVal');
   const vibToggle = document.getElementById('vibToggle');
-  const calmToggle = document.getElementById('calmToggle');
-
+  const toneToggle = document.getElementById('toneToggle');
   const modalBack = document.getElementById('modalBack');
-  const modalDesc = document.getElementById('modalDesc');
-  const modalPeak = document.getElementById('modalPeak');
-  const modalLast = document.getElementById('modalLast');
-  const modalMeaning = document.getElementById('modalMeaning');
+  const modalText = document.getElementById('modalText');
+  const modalPercent = document.getElementById('modalPercent');
   const modalClose = document.getElementById('modalClose');
-  const modalReset = document.getElementById('modalReset');
+  const modalRestart = document.getElementById('modalRestart');
+  const ticksContainer = document.getElementById('ticksContainer');
 
   // Audio
   let audioCtx = null;
@@ -240,41 +205,39 @@
   let filter = null;
   let running = false;
 
-  // sensor
-  let lastBeta = 0;
-  let lastGamma = 0;
-  let lastTilt = 0;
+  // measurement
+  let lastPercent = 0;
+  let currentPercent = 0;
   let lastFreq = 0;
-
-  // stats
-  let peakPercent = 0;
   let recording = false;
 
-  // vibration state
+  // vibration
   let vibEnabled = true;
   let toneEnabled = true;
   let lastVibAt = 0;
 
-  // helper clamp
+  // helpers
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const percentToAngle = p => (-90 + (p/100)*180); // -90 .. +90 degrees
 
-  // Mapping tilt (0..90) -> frequency
-  function tiltToFreq(tilt) {
-    const t = clamp(tilt,0,90)/90;
-    return MIN_FREQ + (MAX_FREQ - MIN_FREQ) * t;
+  // Exponential mapping: t in [0,1] -> freq
+  function tToFreq(t) {
+    // make response steeper for high values: use exponent 2 for dramatic effect
+    const e = Math.pow(clamp(t,0,1), 2.0);
+    const ratio = MAX_FREQ / MIN_FREQ;
+    return MIN_FREQ * Math.pow(ratio, e);
   }
-  // Frequency -> percent 0..100
+
   function freqToPercent(freq) {
-    const p = (clamp(freq,MIN_FREQ,MAX_FREQ)-MIN_FREQ) / (MAX_FREQ - MIN_FREQ);
-    return Math.round(p*100);
+    // inverse mapping (approx): find t so that freq = MIN * ratio^(t^2)
+    const ratio = MAX_FREQ / MIN_FREQ;
+    // solve e = log(freq/MIN)/log(ratio), then t = sqrt(e)
+    let e = Math.log(clamp(freq,MIN_FREQ,MAX_FREQ) / MIN_FREQ) / Math.log(ratio);
+    e = clamp(e, 0, 1);
+    const t = Math.sqrt(e);
+    return Math.round(t * 100);
   }
 
-  // needle: map percent 0..100 -> angle -90..+90
-  function percentToAngle(percent) {
-    return -90 + (percent/100)*180;
-  }
-
-  // Smooth frequency setter
   function setFrequencySmooth(value) {
     if (!audioCtx || !osc) return;
     const now = audioCtx.currentTime;
@@ -287,7 +250,6 @@
     }
   }
 
-  // Start audio graph
   function startAudio() {
     if (running) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -297,11 +259,9 @@
 
     osc.type = 'sine';
     osc.frequency.value = MIN_FREQ;
-
     filter.type = 'lowpass';
     filter.frequency.value = 2000;
     filter.Q.value = 0.7;
-
     masterGain.gain.value = 0.12;
 
     osc.connect(filter);
@@ -311,75 +271,78 @@
     try { osc.start(); } catch(e){}
 
     running = true;
-    modeRead.textContent = 'Läuft';
-    statusEl.textContent = 'Audio aktiv — Gerät kippen.';
+    recording = true;
+    statusEl.textContent = 'EMPFANG: Aktiv';
     startBtn.style.display = 'none';
     stopBtn.style.display = 'inline-block';
     resultBtn.style.display = 'inline-block';
-    recording = true;
   }
 
   function stopAudioClean() {
     if (!running) return;
     try { osc.stop(); } catch(e){}
     try { audioCtx.close(); } catch(e){}
-    audioCtx = null; osc = null; masterGain = null; filter = null;
+    audioCtx=null; osc=null; masterGain=null; filter=null;
     running = false;
     recording = false;
     statusEl.textContent = 'Gestoppt';
-    modeRead.textContent = 'Aus';
     startBtn.style.display = 'inline-block';
     stopBtn.style.display = 'none';
     resultBtn.style.display = 'none';
   }
 
-  // Sensor handler
+  // Deviceorientation handler (we still use tilt as hidden trigger)
   function handleOrientation(ev) {
     if (!ev) return;
     const beta = (typeof ev.beta === 'number') ? ev.beta : 0;
     const gamma = (typeof ev.gamma === 'number') ? ev.gamma : 0;
-    lastBeta = beta; lastGamma = gamma;
 
-    // combine magnitude
-    const absBeta = Math.abs(beta);
-    const absGamma = Math.abs(gamma);
-    let tilt = Math.sqrt(absBeta*absBeta + absGamma*absGamma) / Math.SQRT2;
-    tilt = clamp(tilt,0,90);
+    // combine into magnitude 0..~90
+    const a = Math.abs(beta), b = Math.abs(gamma);
+    let tilt = Math.sqrt(a*a + b*b) / Math.SQRT2;
+    tilt = clamp(tilt, 0, 90);
 
-    const freq = tiltToFreq(tilt);
+    // normalized 0..1
+    const t = tilt / 90;
+    const freq = tToFreq(t);
     const percent = freqToPercent(freq);
 
-    // update stats
-    lastTilt = tilt;
+    // update current
+    currentPercent = percent;
     lastFreq = freq;
-    if (percent > peakPercent) peakPercent = percent;
 
-    // update UI values
-    betaVal.textContent = beta.toFixed(1) + '°';
-    gammaVal.textContent = gamma.toFixed(1) + '°';
-    tiltRead.textContent = tilt.toFixed(1) + '°';
-    freqRead.textContent = Math.round(freq) + ' Hz';
-    peakRead.textContent = peakPercent + '%';
+    // UI update (only show percents, no angles)
+    currentVal.textContent = percent + '%';
     percentText.textContent = percent + '%';
     barFill.style.width = percent + '%';
 
-    // needle rotation
+    // needle
     const angle = percentToAngle(percent);
     needle.style.setProperty('--angle', angle + 'deg');
-    // set explicit transform as fallback
     needle.style.transform = `rotate(${angle}deg)`;
 
-    // add vibrating needle class when level very high
-    if (percent >= 90) {
-      needle.classList.add('vibrating');
-    } else {
-      needle.classList.remove('vibrating');
+    // color the needle depending on percent (green->yellow->orange->red)
+    const color = pickColorForPercent(percent);
+    needle.style.background = `linear-gradient(180deg, ${color} 0%, rgba(0,0,0,0.15) 100%)`;
+    needle.style.boxShadow = `0 10px 30px rgba(0,0,0,0.5), 0 0 18px ${hexToRgba(color,0.06)} inset`;
+    // center glowing orb
+    const orb = document.querySelector('.gauge-center');
+    orb.style.background = (percent >= 70 ? 'var(--danger)' : 'var(--accent)');
+
+    // vibe at high percent
+    if (percent >= 90) needle.classList.add('vibe'); else needle.classList.remove('vibe');
+
+    // vibration API for device
+    const now = Date.now();
+    if (vibEnabled && percent >= VIBRATION_THRESHOLD_PERCENT && (now - lastVibAt) > VIBRATION_COOLDOWN_MS) {
+      lastVibAt = now;
+      try { if (navigator.vibrate) navigator.vibrate(120); } catch(e){}
     }
 
-    // audio update
+    // audio
     if (running && toneEnabled && audioCtx && osc) {
       setFrequencySmooth(freq);
-      // adjust filter cutoff to make low frequencies darker
+      // modulate filter with freq
       const filterCut = clamp(Math.max(200, freq * 2), 200, 20000);
       try {
         filter.frequency.cancelScheduledValues(audioCtx.currentTime);
@@ -387,20 +350,22 @@
         filter.frequency.linearRampToValueAtTime(filterCut, audioCtx.currentTime + SMOOTH_TIME * 1.2);
       } catch(e){}
     }
+  }
 
-    // vibration/haptics: only sparingly to avoid continuous buzzing
-    const now = Date.now();
-    if (vibEnabled && percent >= Math.round(freqToPercent(VIBRATION_THRESHOLD_FREQ)) && (now - lastVibAt) > VIBRATION_COOLDOWN_MS) {
-      lastVibAt = now;
-      // try navigator.vibrate
-      try {
-        if (navigator.vibrate) {
-          navigator.vibrate([120]);
-        }
-      } catch(e){}
-    }
-
-    lastTilt = tilt;
+  // pick color gradient stops for needle based on percent
+  function pickColorForPercent(p) {
+    if (p <= 25) return '#05ff92';        // green-cyan
+    if (p <= 50) return '#fff85a';        // yellow
+    if (p <= 75) return '#ffb24f';        // orange
+    return '#ff4d4d';                     // red
+  }
+  function hexToRgba(hex, a){
+    // simple hex to rgba
+    hex = hex.replace('#','');
+    const r = parseInt(hex.substring(0,2),16);
+    const g = parseInt(hex.substring(2,4),16);
+    const b = parseInt(hex.substring(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
   }
 
   // Permission flow for iOS
@@ -410,7 +375,7 @@
         const result = await DeviceOrientationEvent.requestPermission();
         return result === 'granted';
       } catch (err) {
-        console.warn('DeviceOrientation permission request failed:', err);
+        console.warn('Permission request failed:', err);
         return false;
       }
     } else {
@@ -418,95 +383,52 @@
     }
   }
 
-  // Start button handler
+  // Start handler
   startBtn.addEventListener('click', async () => {
-    statusEl.textContent = 'Fordere Sensor-Zugriff an...';
+    statusEl.textContent = 'Ermittle Zugriff...';
     const ok = await requestSensorPermissionIfNeeded();
     if (!ok) {
-      statusEl.textContent = 'Sensor-Zugriff verweigert. Bitte Safari Einstellungen prüfen.';
+      statusEl.textContent = 'Zugriff verweigert – Einstellungen prüfen.';
       return;
     }
 
-    // start audio and resume to unlock iOS audio
+    // unlock audio via user gesture
     try {
       if (!audioCtx) startAudio();
       else await audioCtx.resume();
     } catch (e) {
-      console.warn('Audio Fehler', e);
-      statusEl.textContent = 'Fehler beim Audio starten.';
+      statusEl.textContent = 'Audio-Start fehlgeschlagen.';
       return;
     }
 
-    // register sensor listener
+    // register listener
     window.addEventListener('deviceorientation', handleOrientation, true);
 
-    // Set UI
-    statusEl.textContent = 'Läuft — kippe das Gerät.';
-    modeRead.textContent = 'Läuft';
+    statusEl.textContent = 'EMPFANG: Aktiv';
+    lastVal.textContent = '—%';
   });
 
-  // Stop button handler
+  // stop
   stopBtn.addEventListener('click', () => {
     window.removeEventListener('deviceorientation', handleOrientation, true);
-    stopAudioClean();
+    // preserve last measurement but stop audio
+    if (audioCtx && audioCtx.state === 'running') {
+      try { audioCtx.suspend(); } catch(e){}
+    }
+    running = false;
     statusEl.textContent = 'Gestoppt';
+    stopBtn.style.display = 'none';
+    startBtn.style.display = 'inline-block';
   });
 
-  // Ergebnis button: show modal and pause audio
+  // result
   resultBtn.addEventListener('click', () => {
-    // pause audio
+    // use last measured value (currentPercent)
+    lastVal.textContent = currentPercent + '%';
+    showResult(currentPercent);
+    // stop audio for clarity
     try { if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch(e){}
     statusEl.textContent = 'Ergebnis angezeigt';
-    // show modal & content
-    showResult();
-  });
-
-  function showResult() {
-    modalBack.style.display = 'flex';
-    modalBack.setAttribute('aria-hidden','false');
-    modalDesc.textContent = "Analyse des letzten Messlaufs:";
-    modalPeak.textContent = peakPercent + '%';
-    modalLast.textContent = freqToPercent(lastFreq) + '%';
-
-    // interpret
-    const p = peakPercent;
-    let meaning = '';
-    if (p <= 20) {
-      meaning = "Geringe Aktivität — Es gibt keine belastbaren Hinweise für paranormale Präsenz. Die Umgebung ist ruhig.";
-    } else if (p <= 50) {
-      meaning = "Leichte Aktivität — Schwache Einflüsse wurden registriert. Beobachten Sie das Umfeld weiter.";
-    } else if (p <= 80) {
-      meaning = "Signifikante Aktivität — Mehrere Indikatoren sprechen für eine mögliche Präsenz. Vorsicht und Dokumentation empfohlen.";
-    } else {
-      meaning = "Starke Aktivität — Deutliche energetische Signaturen. Reduzieren Sie Störungen, dokumentieren Sie Ort und Zeit, und verhalten Sie sich bedacht.";
-    }
-    modalMeaning.textContent = meaning;
-  }
-
-  modalClose.addEventListener('click', () => {
-    modalBack.style.display = 'none';
-    modalBack.setAttribute('aria-hidden','true');
-    statusEl.textContent = 'Lauf pausiert — Neues Testen mit „Energielevel testen“.';
-  });
-
-  modalReset.addEventListener('click', () => {
-    modalBack.style.display = 'none';
-    modalBack.setAttribute('aria-hidden','true');
-    // reset stats and restart
-    peakPercent = 0;
-    peakRead.textContent = '—';
-    percentText.textContent = '0%';
-    barFill.style.width = '0%';
-    betaVal.textContent = '—°'; gammaVal.textContent = '—°'; tiltRead.textContent = '—°'; freqRead.textContent = '— Hz';
-    // resume sensor & audio
-    try {
-      if (!audioCtx) startAudio();
-      else audioCtx.resume();
-      window.addEventListener('deviceorientation', handleOrientation, true);
-      statusEl.textContent = 'Neu gestartet — kippe das Gerät.';
-    } catch(e){
-      statusEl.textContent = 'Fehler beim Neustart.';
-    }
   });
 
   // toggles
@@ -514,57 +436,116 @@
     vibEnabled = !vibEnabled;
     vibToggle.textContent = 'Vibration: ' + (vibEnabled ? 'AN' : 'AUS');
   });
-  calmToggle.addEventListener('click', () => {
+  toneToggle.addEventListener('click', () => {
     toneEnabled = !toneEnabled;
-    calmToggle.textContent = 'Ton: ' + (toneEnabled ? 'AN' : 'AUS');
-    if (!toneEnabled && audioCtx && audioCtx.state === 'running') {
-      // mute master gain
-      if (masterGain) masterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    } else if (toneEnabled && masterGain && audioCtx && audioCtx.state === 'running') {
-      masterGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    toneToggle.textContent = 'Ton: ' + (toneEnabled ? 'AN' : 'AUS');
+    if (!toneEnabled && masterGain) {
+      try { masterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime); } catch(e){}
+    } else if (toneEnabled && masterGain) {
+      try { masterGain.gain.setValueAtTime(0.12, audioCtx.currentTime); } catch(e){}
     }
   });
 
-  // set ticks (0,25,50,75,100)
-  const ticksEl = document.getElementById('ticks');
+  // modal
+  function showResult(percent) {
+    modalBack.style.display = 'flex';
+    modalBack.setAttribute('aria-hidden','false');
+    modalPercent.textContent = (percent || 0) + '%';
+    // interpretation text (mystic)
+    let txt = '';
+    const p = percent || 0;
+    if (p <= 20) {
+      txt = "Keine nennenswerte Präsenz festgestellt. Die Umgebung wirkt ruhig.";
+    } else if (p <= 50) {
+      txt = "Verstärkte energetische Aktivität wahrnehmbar. Weitere Beobachtung empfohlen.";
+    } else if (p <= 80) {
+      txt = "Signifikante Präsenzdetektion. Dokumentation und erhöhte Vorsicht ratsam.";
+    } else {
+      txt = "Starke energetische Anomalie! Verhalte dich umsichtig. Dokumentiere Ort & Zeit.";
+    }
+    modalText.textContent = txt;
+  }
+
+  modalClose.addEventListener('click', () => {
+    modalBack.style.display = 'none';
+    modalBack.setAttribute('aria-hidden','true');
+    statusEl.textContent = 'Lauf pausiert';
+  });
+  modalRestart.addEventListener('click', () => {
+    modalBack.style.display = 'none';
+    modalBack.setAttribute('aria-hidden','true');
+    // reset last values
+    lastVal.textContent = '—%';
+    barFill.style.width = '0%';
+    percentText.textContent = '0%';
+    currentVal.textContent = '—%';
+    currentPercent = 0;
+    // resume
+    try {
+      if (!audioCtx) startAudio();
+      else audioCtx.resume();
+      window.addEventListener('deviceorientation', handleOrientation, true);
+      statusEl.textContent = 'EMPFANG: Aktiv';
+    } catch(e){
+      statusEl.textContent = 'Fehler beim Neustart';
+    }
+  });
+
+  // ticks outer edge (0,25,50,75,100)
   function createTicks() {
-    ticksEl.innerHTML = '';
+    ticksContainer.innerHTML = '';
     const labels = [0,25,50,75,100];
+    const gauge = document.getElementById('gauge');
+    const rect = gauge.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height + 8; // center below gauge (semi-circle)
+    const radius = Math.min(rect.width/2, rect.height) - 6;
+    // we'll position ticks using rotation inside the gauge relative to bottom-center
     labels.forEach(p => {
       const el = document.createElement('div');
       el.className = 'tick';
       const angle = percentToAngle(p);
-      el.style.transform = `rotate(${angle}deg) translateY(-2px)`;
-      const lbl = document.createElement('div');
-      lbl.className = 'lbl';
-      lbl.textContent = p + '%';
-      lbl.style.transform = `rotate(${-angle}deg)`; // keep label upright
-      el.appendChild(lbl);
-      ticksEl.appendChild(el);
+      el.style.transform = `rotate(${angle}deg) translateY(-6px)`;
+      el.style.left = '50%'; el.style.bottom = '8px';
+      const line = document.createElement('div');
+      line.className = 'tick-line';
+      // longer major ticks
+      line.style.height = p % 25 === 0 ? '14px' : '8px';
+      el.appendChild(line);
+      const label = document.createElement('div');
+      label.className = 'tick-label';
+      label.textContent = p + '%';
+      label.style.transform = `rotate(${-angle}deg) translateY(-10px)`;
+      el.appendChild(label);
+      ticksContainer.appendChild(el);
     });
   }
-  createTicks();
-
-  // friendly fallback
-  setTimeout(() => {
-    if (typeof DeviceOrientationEvent === 'undefined' && typeof window.DeviceMotionEvent === 'undefined') {
-      statusEl.textContent = 'DeviceOrientation/DeviceMotion wird von diesem Gerät/Browser nicht unterstützt.';
-    }
-  }, 800);
+  // call after layout
+  setTimeout(createTicks, 120);
 
   // best-effort resume on touchend
   document.body.addEventListener('touchend', async () => {
-    if (audioCtx && audioCtx.state === 'suspended' && running) {
+    if (audioCtx && audioCtx.state === 'suspended') {
       try { await audioCtx.resume(); } catch(e){}
     }
   }, {passive:true});
 
-  // clean unload
+  // friendly fallback
+  setTimeout(() => {
+    if (typeof DeviceOrientationEvent === 'undefined' && typeof window.DeviceMotionEvent === 'undefined') {
+      statusEl.textContent = 'Dieses Gerät unterstützt keine Bewegungssensoren.';
+    }
+  }, 900);
+
+  // cleanup
   window.addEventListener('pagehide', () => {
     try { window.removeEventListener('deviceorientation', handleOrientation, true); } catch(e){}
     try { if (audioCtx) audioCtx.close(); } catch(e){}
   });
 
+  // Initialize defaults
+  vibToggle.textContent = 'Vibration: AN';
+  toneToggle.textContent = 'Ton: AN';
 })();
 </script>
 </body>
