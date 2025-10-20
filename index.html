@@ -3,20 +3,21 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Paranometer — Energie-Scanner</title>
+<title>Paranometer — Energie-Scanner (Final)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#060709;
-    --panel:#0d1113;
-    --hud:#07c76b; /* neon green */
+    --bg:#050608;
+    --panel:#0c1113;
+    --hud:#07c76b;
     --accent:#19e0b8;
-    --muted: rgba(255,255,255,0.04);
-    --danger:#e03b3b;
+    --muted: rgba(255,255,255,0.03);
+    --danger:#ff4d4d;
+    --glass: rgba(255,255,255,0.02);
   }
   *{box-sizing:border-box}
   body{margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:
-        radial-gradient(800px 400px at 10% 10%, rgba(7,199,107,0.03), transparent 6%),
+        radial-gradient(800px 400px at 10% 10%, rgba(7,199,107,0.02), transparent 6%),
         linear-gradient(180deg,#030405 0%, #061012 100%);
        color:var(--hud); -webkit-font-smoothing:antialiased;}
   .container{width:min(980px,96vw); padding:20px;}
@@ -34,23 +35,17 @@
   .gauge{width:420px; height:220px; position:relative;}
   .gauge-face{position:absolute; inset:0; border-radius:220px 220px 0 0; overflow:visible; background:linear-gradient(180deg, rgba(7,199,107,0.02), rgba(0,0,0,0)); box-shadow: inset 0 -8px 30px rgba(0,0,0,0.6);}
   /* outer ticks */
+  #ticksContainer {position:absolute; inset:0; pointer-events:none; z-index:15;}
   .tick{position:absolute; left:50%; bottom:8px; transform-origin:50% 92%;}
   .tick-line{width:2px; height:12px; background:rgba(7,199,107,0.12); transform-origin:50% 100%;}
-  .tick-label{position:absolute; bottom:22px; left:50%; transform:translateX(-50%); color:var(--hud); font-size:12px; letter-spacing:0.6px; text-shadow:0 4px 12px rgba(1,5,2,0.6)}
+  .tick-label{position:absolute; bottom:28px; left:50%; transform:translateX(-50%); color:var(--hud); font-size:12px; letter-spacing:0.6px; text-shadow:0 4px 12px rgba(1,5,2,0.6)}
 
   /* needle */
   .needle-wrap{position:absolute; left:50%; bottom:8px; width:6px; height:150px; transform-origin:50% 92%; pointer-events:none; z-index:20}
   .needle{position:absolute; left:50%; bottom:0; width:6px; height:96px; transform-origin:50% 92%; border-radius:4px; background:linear-gradient(180deg, var(--hud), rgba(0,0,0,0.15)); transform:rotate(-90deg); box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 18px rgba(7,199,107,0.06) inset}
   .needle::after{content:""; position:absolute; left:50%; top:-14px; transform:translateX(-50%); width:18px; height:18px; border-radius:50%; background:var(--accent); box-shadow:0 0 24px rgba(25,224,184,0.9)}
   .needle.vibe{animation:needleShake 0.16s infinite linear}
-
-  @keyframes needleShake{
-    0% { transform: rotate(var(--angle)); }
-    25% { transform: rotate(calc(var(--angle) + 2deg)); }
-    50% { transform: rotate(calc(var(--angle) - 1.4deg)); }
-    75% { transform: rotate(calc(var(--angle) + 1deg)); }
-    100% { transform: rotate(var(--angle)); }
-  }
+  @keyframes needleShake{ 0%{transform:rotate(var(--angle));}25%{transform:rotate(calc(var(--angle)+2deg));}50%{transform:rotate(calc(var(--angle)-1.4deg));}75%{transform:rotate(calc(var(--angle)+1deg));}100%{transform:rotate(var(--angle));}}
 
   .gauge-center{position:absolute; left:50%; bottom:-8px; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--accent); box-shadow:0 0 18px rgba(25,224,184,0.7)}
 
@@ -68,15 +63,21 @@
   .right h3{margin:0;color:var(--accent)}
   .right p{margin:6px 0 12px 0; color:rgba(180,255,210,0.9)}
 
-  .info-tile{background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.02); margin-bottom:8px}
+  .info-tile{background:var(--glass); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.02); margin-bottom:8px}
   .info-tile .val{font-size:22px; font-weight:800; color:var(--accent)}
 
-  /* modal */
-  .modal-back{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.9)); z-index:60}
-  .modal{width:min(720px,92vw); background:linear-gradient(180deg,#071114,#030305); border-radius:12px; padding:18px; border:1px solid rgba(7,199,107,0.04)}
-  .modal h2{color:var(--accent); margin:0}
+  /* modal G3 style (glitch + wobble) */
+  .modal-back{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:linear-gradient(90deg, rgba(0,0,0,0.8), rgba(0,0,0,0.95)); z-index:60}
+  .modal{width:min(720px,92vw); background:linear-gradient(180deg,#071114,#030305); border-radius:12px; padding:18px; border:1px solid rgba(7,199,107,0.04); color:var(--accent); overflow:hidden}
+  .modal h2{color:var(--accent); margin:0; font-size:20px}
   .modal p{color:rgba(180,255,210,0.95); margin:8px 0 0 0}
-  .modal .big{font-size:34px; font-weight:800; color:var(--accent); margin-top:10px}
+  .modal .big{font-size:38px; font-weight:900; margin-top:10px}
+  .glitch { display:inline-block; position:relative; }
+  .glitch::before, .glitch::after { content: attr(data-text); position:absolute; left:0; top:0; opacity:0.8; }
+  .glitch::before { transform: translate(-2px,-2px); color: rgba(255,0,0,0.7); mix-blend-mode:screen; clip-path: polygon(0 0,100% 0,100% 45%,0 45%); }
+  .glitch::after { transform: translate(2px,2px); color: rgba(0,255,200,0.6); mix-blend-mode:screen; clip-path: polygon(0 55%,100% 55%,100% 100%,0 100%); }
+  .wobble { animation: wobbleNow 0.6s ease-in-out; }
+  @keyframes wobbleNow { 0%{transform:translateY(0) skewX(0);}20%{transform:translateY(-6px) skewX(-2deg);}40%{transform:translateY(4px) skewX(2deg);}60%{transform:translateY(-2px) skewX(-1deg);}100%{transform:translateY(0) skewX(0);} }
 
   /* responsive */
   @media (max-width:820px){
@@ -103,14 +104,10 @@
           <div class="gauge-wrap">
             <div class="gauge" id="gauge">
               <div class="gauge-face"></div>
-
-              <!-- ticks will be inserted here -->
               <div id="ticksContainer"></div>
-
               <div class="needle-wrap">
                 <div class="needle" id="needle" style="--angle:-90deg;"></div>
               </div>
-
               <div class="gauge-center"></div>
             </div>
           </div>
@@ -134,7 +131,7 @@
           <p>Der Scanner ist auf Empfang. Interpretiere das Ergebnis mit Bedacht.</p>
 
           <div class="info-tile"><div style="font-size:12px">Momentanes Level</div><div class="val" id="currentVal">—%</div></div>
-          <div class="info-tile"><div style="font-size:12px">Letzte Messung</div><div class="val" id="lastVal">—%</div></div>
+          <div class="info-tile"><div style="font-size:12px">Letzte Messung (für Ergebnis)</div><div class="val" id="lastVal">—%</div></div>
 
           <div style="margin-top:8px;">
             <div style="display:flex; gap:8px;">
@@ -157,11 +154,11 @@
     </div>
   </div>
 
-  <!-- Modal Ergebnis -->
+  <!-- Modal Ergebnis (G3 visuals + strong SFX) -->
   <div class="modal-back" id="modalBack" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" >
-      <h2>Analyse — Paranormales Profil</h2>
-      <p id="modalText">Lade...</p>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="modalTitle"><span class="glitch" data-text="Analyse — Paranormales Profil">Analyse — Paranormales Profil</span></h2>
+      <p id="modalText">Vorbereitung...</p>
       <div class="big" id="modalPercent">—%</div>
       <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px">
         <button class="ghost" id="modalClose">Zurück</button>
@@ -172,14 +169,15 @@
 
 <script>
 (() => {
-  // Configuration
+  // CONFIG
   const MIN_FREQ = 50;
   const MAX_FREQ = 4000;
   const SMOOTH_TIME = 0.05;
-  const VIBRATION_THRESHOLD_PERCENT = 85; // percent threshold to vibrate/haptic
+  const VIBRATION_THRESHOLD_PERCENT = 85;
   const VIBRATION_COOLDOWN_MS = 900;
+  const ULTRA_RARE_CHANCE = 0.01; // 1%
 
-  // DOM elements
+  // DOM
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
   const resultBtn = document.getElementById('resultBtn');
@@ -197,6 +195,7 @@
   const modalClose = document.getElementById('modalClose');
   const modalRestart = document.getElementById('modalRestart');
   const ticksContainer = document.getElementById('ticksContainer');
+  const modalTitle = document.getElementById('modalTitle');
 
   // Audio
   let audioCtx = null;
@@ -206,36 +205,28 @@
   let running = false;
 
   // measurement
-  let lastPercent = 0;
   let currentPercent = 0;
+  let lastMeasuredPercent = 0;
   let lastFreq = 0;
   let recording = false;
 
-  // vibration
+  // vibration + toggles
   let vibEnabled = true;
   let toneEnabled = true;
   let lastVibAt = 0;
 
-  // helpers
+  // Helpers
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
-  const percentToAngle = p => (-90 + (p/100)*180); // -90 .. +90 degrees
+  const percentToAngle = p => (-90 + (p/100)*180);
 
-  // Exponential mapping: t in [0,1] -> freq
-  function tToFreq(t) {
-    // make response steeper for high values: use exponent 2 for dramatic effect
-    const e = Math.pow(clamp(t,0,1), 2.0);
-    const ratio = MAX_FREQ / MIN_FREQ;
-    return MIN_FREQ * Math.pow(ratio, e);
+  // Linear mapping: t in [0,1] -> frequency
+  function tToFreqLinear(t) {
+    const tt = clamp(t,0,1);
+    return MIN_FREQ + tt * (MAX_FREQ - MIN_FREQ);
   }
-
-  function freqToPercent(freq) {
-    // inverse mapping (approx): find t so that freq = MIN * ratio^(t^2)
-    const ratio = MAX_FREQ / MIN_FREQ;
-    // solve e = log(freq/MIN)/log(ratio), then t = sqrt(e)
-    let e = Math.log(clamp(freq,MIN_FREQ,MAX_FREQ) / MIN_FREQ) / Math.log(ratio);
-    e = clamp(e, 0, 1);
-    const t = Math.sqrt(e);
-    return Math.round(t * 100);
+  function freqToPercentLinear(freq) {
+    const p = (clamp(freq,MIN_FREQ,MAX_FREQ) - MIN_FREQ) / (MAX_FREQ - MIN_FREQ);
+    return Math.round(p * 100);
   }
 
   function setFrequencySmooth(value) {
@@ -291,58 +282,50 @@
     resultBtn.style.display = 'none';
   }
 
-  // Deviceorientation handler (we still use tilt as hidden trigger)
+  // Deviceorientation handler (hidden trigger -> maps to energy)
   function handleOrientation(ev) {
     if (!ev) return;
     const beta = (typeof ev.beta === 'number') ? ev.beta : 0;
     const gamma = (typeof ev.gamma === 'number') ? ev.gamma : 0;
-
-    // combine into magnitude 0..~90
+    // combine magnitude
     const a = Math.abs(beta), b = Math.abs(gamma);
     let tilt = Math.sqrt(a*a + b*b) / Math.SQRT2;
     tilt = clamp(tilt, 0, 90);
-
-    // normalized 0..1
     const t = tilt / 90;
-    const freq = tToFreq(t);
-    const percent = freqToPercent(freq);
+    const freq = tToFreqLinear(t);
+    const percent = Math.round(t * 100);
 
     // update current
     currentPercent = percent;
     lastFreq = freq;
 
-    // UI update (only show percents, no angles)
+    // UI update (no angles shown)
     currentVal.textContent = percent + '%';
     percentText.textContent = percent + '%';
     barFill.style.width = percent + '%';
 
-    // needle
+    // needle rotation & color
     const angle = percentToAngle(percent);
     needle.style.setProperty('--angle', angle + 'deg');
     needle.style.transform = `rotate(${angle}deg)`;
-
-    // color the needle depending on percent (green->yellow->orange->red)
     const color = pickColorForPercent(percent);
     needle.style.background = `linear-gradient(180deg, ${color} 0%, rgba(0,0,0,0.15) 100%)`;
     needle.style.boxShadow = `0 10px 30px rgba(0,0,0,0.5), 0 0 18px ${hexToRgba(color,0.06)} inset`;
-    // center glowing orb
     const orb = document.querySelector('.gauge-center');
     orb.style.background = (percent >= 70 ? 'var(--danger)' : 'var(--accent)');
 
-    // vibe at high percent
     if (percent >= 90) needle.classList.add('vibe'); else needle.classList.remove('vibe');
 
-    // vibration API for device
+    // vibration device
     const now = Date.now();
     if (vibEnabled && percent >= VIBRATION_THRESHOLD_PERCENT && (now - lastVibAt) > VIBRATION_COOLDOWN_MS) {
       lastVibAt = now;
-      try { if (navigator.vibrate) navigator.vibrate(120); } catch(e){}
+      try { if (navigator.vibrate) navigator.vibrate(140); } catch(e){}
     }
 
-    // audio
+    // audio update
     if (running && toneEnabled && audioCtx && osc) {
       setFrequencySmooth(freq);
-      // modulate filter with freq
       const filterCut = clamp(Math.max(200, freq * 2), 200, 20000);
       try {
         filter.frequency.cancelScheduledValues(audioCtx.currentTime);
@@ -352,15 +335,14 @@
     }
   }
 
-  // pick color gradient stops for needle based on percent
+  // color logic
   function pickColorForPercent(p) {
-    if (p <= 25) return '#05ff92';        // green-cyan
-    if (p <= 50) return '#fff85a';        // yellow
-    if (p <= 75) return '#ffb24f';        // orange
-    return '#ff4d4d';                     // red
+    if (p <= 25) return '#05ff92';
+    if (p <= 50) return '#fff85a';
+    if (p <= 75) return '#ffb24f';
+    return '#ff4d4d';
   }
   function hexToRgba(hex, a){
-    // simple hex to rgba
     hex = hex.replace('#','');
     const r = parseInt(hex.substring(0,2),16);
     const g = parseInt(hex.substring(2,4),16);
@@ -391,8 +373,7 @@
       statusEl.textContent = 'Zugriff verweigert – Einstellungen prüfen.';
       return;
     }
-
-    // unlock audio via user gesture
+    // unlock audio
     try {
       if (!audioCtx) startAudio();
       else await audioCtx.resume();
@@ -400,10 +381,8 @@
       statusEl.textContent = 'Audio-Start fehlgeschlagen.';
       return;
     }
-
-    // register listener
+    // register sensors
     window.addEventListener('deviceorientation', handleOrientation, true);
-
     statusEl.textContent = 'EMPFANG: Aktiv';
     lastVal.textContent = '—%';
   });
@@ -411,7 +390,6 @@
   // stop
   stopBtn.addEventListener('click', () => {
     window.removeEventListener('deviceorientation', handleOrientation, true);
-    // preserve last measurement but stop audio
     if (audioCtx && audioCtx.state === 'running') {
       try { audioCtx.suspend(); } catch(e){}
     }
@@ -421,13 +399,14 @@
     startBtn.style.display = 'inline-block';
   });
 
-  // result
-  resultBtn.addEventListener('click', () => {
-    // use last measured value (currentPercent)
-    lastVal.textContent = currentPercent + '%';
-    showResult(currentPercent);
-    // stop audio for clarity
-    try { if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch(e){}
+  // result: uses last measured currentPercent only (no peak)
+  resultBtn.addEventListener('click', async () => {
+    lastMeasuredPercent = currentPercent;
+    lastVal.textContent = lastMeasuredPercent + '%';
+    // show modal (G3 visuals) and play SFX depending on level
+    showResultModal(lastMeasuredPercent);
+    // pause audio for clarity
+    try { if (audioCtx && audioCtx.state === 'running') await audioCtx.suspend(); } catch(e){}
     statusEl.textContent = 'Ergebnis angezeigt';
   });
 
@@ -439,31 +418,175 @@
   toneToggle.addEventListener('click', () => {
     toneEnabled = !toneEnabled;
     toneToggle.textContent = 'Ton: ' + (toneEnabled ? 'AN' : 'AUS');
-    if (!toneEnabled && masterGain) {
+    if (!toneEnabled && masterGain && audioCtx) {
       try { masterGain.gain.setValueAtTime(0.0001, audioCtx.currentTime); } catch(e){}
-    } else if (toneEnabled && masterGain) {
+    } else if (toneEnabled && masterGain && audioCtx) {
       try { masterGain.gain.setValueAtTime(0.12, audioCtx.currentTime); } catch(e){}
     }
   });
 
-  // modal
-  function showResult(percent) {
+  // Modal logic with many messages & Easter eggs
+  const messages = {
+    low: [
+      "Keine nennenswerte Präsenz festgestellt.",
+      "Störquellen: vermutlich Lampen und Staub.",
+      "Hier spukt höchstens dein Router.",
+      "Sanfte Ruhe. Keine Anomalien detektiert.",
+      "Die Luft ist kalt, aber unauffällig.",
+      "Wahrscheinlich nur EMV vom Kühlschrank.",
+      "Nur schwaches Fluktuationsrauschen.",
+      "Keine Entität in Reichweite.",
+      "Atmosphäre neutral — weitermachen wenn du willst.",
+      "Messung normal — keine Aktion erforderlich."
+    ],
+    mid: [
+      "Eine Präsenz ist in der Nähe — vorsichtig.",
+      "Etwas beobachtet dich, bleibt aber distanziert.",
+      "Leichte energetische Störung registriert.",
+      "Unklare Signaturen — erhöhte Aufmerksamkeit empfohlen.",
+      "Es könnte eine schwache Präsenz sein.",
+      "Spuren von Aktivität — dokumentiere Zeit & Ort.",
+      "Flimmernde Signale — möglicherweise temporär.",
+      "Ein Flüstern im Rauschen — hör genau hin.",
+      "Unregelmäßige Muster erkannt.",
+      "Der Scanner nimmt Interaktion wahr."
+    ],
+    high: [
+      "Signifikante Präsenzdetektion. Bleibe ruhig.",
+      "Es beobachtet dich. Distanz wahren.",
+      "Starke energetische Signale — erhöhte Vorsicht.",
+      "Die Entität reagiert auf Anwesenheit.",
+      "Anomalie aktiv — dokumentiere alles.",
+      "Hohe Fluktuation — mögliche Manifestation.",
+      "Räume verändern leicht ihre Sensorik.",
+      "Nicht provozieren — reduziere Störquellen.",
+      "Starke Signatur — handele überlegt.",
+      "Die Umgebung reagiert auf Messung."
+    ],
+    critical: [
+      "Starke energetische Anomalie! Verlasse den Bereich.",
+      "Sehr hohe Aktivität — Verhalten ändern empfohlen.",
+      "Warnung: Intensive Signale. Schütze dich.",
+      "Akute Präsenz — bleibe still und dokumentiere.",
+      "Unruhe hoch — potenzielle Manifestation.",
+      "Extremes Rauschen – Abstand nehmen empfohlen.",
+      "Energie konzentriert — mögliche Gefährdung.",
+      "Starke Interaktion – sichere Umgebung jetzt.",
+      "Gefahrensignal — suche sichere Zone.",
+      "Höhere Gewalt registriert — vorsichtig handeln."
+    ],
+    ultra: [
+      "VERBINDUNG HERGESTELLT. DU HÄTTEST NICHT ÖFFNEN DÜRFEN.",
+      "CODE PHANTOM: Authentifizierung fehlgeschlagen.",
+      "Koordinaten empfangen: 48.85 N, 2.35 E. Unbekannt.",
+      "Ektoplasma Level 9000! ...IT'S OVER NINE THOUSAAAAND!",
+      "Spiritus.exe hat aufgehört zu funktionieren.",
+      "Error 666: Ritual konnte nicht geladen werden.",
+      "Die Verbindung flüstert: „Wir sehen dich.“",
+      "Die Linie zwischen den Welten ist dünn.",
+      "Die Entität sagt: „Danke, dass du angerufen hast.“",
+      "DAS PROTOKOLL IST AKTIVIERT. FLIEHE NICHT."
+    ]
+  };
+
+  // pick message depending on percent and 1% Ultra chance
+  function pickMessage(percent) {
+    // Ultra rare chance override
+    if (Math.random() < ULTRA_RARE_CHANCE) {
+      const u = messages.ultra;
+      return u[Math.floor(Math.random()*u.length)];
+    }
+    if (percent <= 20) return randomFrom(messages.low);
+    if (percent <= 50) return randomFrom(messages.mid);
+    if (percent <= 80) return randomFrom(messages.high);
+    return randomFrom(messages.critical);
+  }
+  function randomFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  // SFX generation for results: stronger SFX for mid/high/critical & ultra
+  function playResultSFX(percent, ultra=false) {
+    // Use short webaudio sound: an impact + low rumble; stronger at higher percent
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+
+      // base impact
+      const impact = ctx.createOscillator();
+      const impactGain = ctx.createGain();
+      impact.type = 'sawtooth';
+      const baseFreq = 80 + Math.round(percent/100 * 400); // 80..480
+      impact.frequency.setValueAtTime(baseFreq, now);
+      impactGain.gain.setValueAtTime(0.0001, now);
+      impactGain.gain.linearRampToValueAtTime(0.18 + percent/100 * 0.25, now + 0.006);
+      impactGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+      // low rumble
+      const rumble = ctx.createOscillator();
+      const rumbleGain = ctx.createGain();
+      rumble.type = 'sine';
+      rumble.frequency.setValueAtTime(30 + percent/100 * 40, now);
+      rumbleGain.gain.setValueAtTime(0.0001, now);
+      rumbleGain.gain.linearRampToValueAtTime(0.05 + percent/100 * 0.08, now + 0.02);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+      // optional high scary tick for ultra
+      let ultraOsc = null, ultraGain = null;
+      if (ultra) {
+        ultraOsc = ctx.createOscillator();
+        ultraGain = ctx.createGain();
+        ultraOsc.type = 'triangle';
+        ultraOsc.frequency.setValueAtTime(1200, now);
+        ultraGain.gain.setValueAtTime(0.0001, now);
+        ultraGain.gain.linearRampToValueAtTime(0.22, now + 0.01);
+        ultraGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+      }
+
+      impact.connect(impactGain);
+      rumble.connect(rumbleGain);
+      impactGain.connect(ctx.destination);
+      rumbleGain.connect(ctx.destination);
+      if (ultra) { ultraOsc.connect(ultraGain); ultraGain.connect(ctx.destination); }
+
+      impact.start(now);
+      rumble.start(now);
+      if (ultra) ultraOsc.start(now);
+
+      impact.stop(now + 0.7);
+      rumble.stop(now + 1.2);
+      if (ultra) ultraOsc.stop(now + 0.95);
+
+      // close context later
+      setTimeout(()=>{ try{ ctx.close(); } catch(e){} }, 1500);
+    } catch(e){
+      console.warn('SFX failed', e);
+    }
+  }
+
+  // show result modal with G3 visuals + strong SFX (like G2 strength)
+  function showResultModal(percent) {
+    const msg = pickMessage(percent);
+    // apply glitch + wobble visual
     modalBack.style.display = 'flex';
     modalBack.setAttribute('aria-hidden','false');
-    modalPercent.textContent = (percent || 0) + '%';
-    // interpretation text (mystic)
-    let txt = '';
-    const p = percent || 0;
-    if (p <= 20) {
-      txt = "Keine nennenswerte Präsenz festgestellt. Die Umgebung wirkt ruhig.";
-    } else if (p <= 50) {
-      txt = "Verstärkte energetische Aktivität wahrnehmbar. Weitere Beobachtung empfohlen.";
-    } else if (p <= 80) {
-      txt = "Signifikante Präsenzdetektion. Dokumentation und erhöhte Vorsicht ratsam.";
-    } else {
-      txt = "Starke energetische Anomalie! Verhalte dich umsichtig. Dokumentiere Ort & Zeit.";
+    modalText.textContent = msg;
+    modalPercent.textContent = percent + '%';
+    // add visual wobble/glitch
+    const modal = modalBack.querySelector('.modal');
+    modal.classList.remove('wobble');
+    void modal.offsetWidth;
+    modal.classList.add('wobble');
+    // choose sfx: ultra gives special sfx
+    const isUltra = messages.ultra.includes(msg);
+    const sfxPercent = clamp(percent,0,100);
+    // stronger SFX matching request (G2 strength) — and ultra gives extra
+    playResultSFX(sfxPercent, isUltra);
+    // micro vibration for very high
+    if (vibEnabled && percent >= VIBRATION_THRESHOLD_PERCENT) {
+      try { if (navigator.vibrate) navigator.vibrate([120,40,120]); } catch(e){}
     }
-    modalText.textContent = txt;
+    // overlay title glitch text update
+    const glitchEl = modalTitle.querySelector('.glitch');
+    if (glitchEl) glitchEl.dataset.text = "Analyse — Paranormales Profil";
   }
 
   modalClose.addEventListener('click', () => {
@@ -474,13 +597,12 @@
   modalRestart.addEventListener('click', () => {
     modalBack.style.display = 'none';
     modalBack.setAttribute('aria-hidden','true');
-    // reset last values
+    // reset last measurement and resume
     lastVal.textContent = '—%';
     barFill.style.width = '0%';
     percentText.textContent = '0%';
     currentVal.textContent = '—%';
     currentPercent = 0;
-    // resume
     try {
       if (!audioCtx) startAudio();
       else audioCtx.resume();
@@ -495,12 +617,6 @@
   function createTicks() {
     ticksContainer.innerHTML = '';
     const labels = [0,25,50,75,100];
-    const gauge = document.getElementById('gauge');
-    const rect = gauge.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height + 8; // center below gauge (semi-circle)
-    const radius = Math.min(rect.width/2, rect.height) - 6;
-    // we'll position ticks using rotation inside the gauge relative to bottom-center
     labels.forEach(p => {
       const el = document.createElement('div');
       el.className = 'tick';
@@ -509,8 +625,7 @@
       el.style.left = '50%'; el.style.bottom = '8px';
       const line = document.createElement('div');
       line.className = 'tick-line';
-      // longer major ticks
-      line.style.height = p % 25 === 0 ? '14px' : '8px';
+      line.style.height = '14px';
       el.appendChild(line);
       const label = document.createElement('div');
       label.className = 'tick-label';
@@ -520,7 +635,6 @@
       ticksContainer.appendChild(el);
     });
   }
-  // call after layout
   setTimeout(createTicks, 120);
 
   // best-effort resume on touchend
@@ -530,7 +644,7 @@
     }
   }, {passive:true});
 
-  // friendly fallback
+  // fallback message
   setTimeout(() => {
     if (typeof DeviceOrientationEvent === 'undefined' && typeof window.DeviceMotionEvent === 'undefined') {
       statusEl.textContent = 'Dieses Gerät unterstützt keine Bewegungssensoren.';
@@ -543,9 +657,10 @@
     try { if (audioCtx) audioCtx.close(); } catch(e){}
   });
 
-  // Initialize defaults
+  // init
   vibToggle.textContent = 'Vibration: AN';
   toneToggle.textContent = 'Ton: AN';
+
 })();
 </script>
 </body>
